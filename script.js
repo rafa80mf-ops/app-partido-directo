@@ -52,3 +52,53 @@ function golVisitante() {
 
 // Mostrar 00:00 al cargar
 mostrarTiempo();
+// ===========================
+// JUGADORAS MOVIBLES
+// ===========================
+
+const jugadoras = document.querySelectorAll(".jugadora");
+
+jugadoras.forEach((jugadora) => {
+
+    jugadora.style.cursor = "grab";
+
+    let moviendo = false;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    jugadora.addEventListener("mousedown", (e) => {
+
+        moviendo = true;
+
+        const rect = jugadora.getBoundingClientRect();
+
+        offsetX = e.clientX - rect.left;
+        offsetY = e.clientY - rect.top;
+
+        jugadora.style.cursor = "grabbing";
+
+    });
+
+    document.addEventListener("mousemove", (e) => {
+
+        if (!moviendo) return;
+
+        const campo = document.querySelector(".campo");
+        const rectCampo = campo.getBoundingClientRect();
+
+        let x = e.clientX - rectCampo.left - offsetX;
+        let y = e.clientY - rectCampo.top - offsetY;
+
+        jugadora.style.left = x + "px";
+        jugadora.style.top = y + "px";
+
+    });
+
+    document.addEventListener("mouseup", () => {
+
+        moviendo = false;
+        jugadora.style.cursor = "grab";
+
+    });
+
+});
