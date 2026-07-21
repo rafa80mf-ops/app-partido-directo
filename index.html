@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>App Partido Directo</title>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="app">
+
+  <header class="cabecera">
+    <div class="escudo">🛡️</div>
+
+    <div class="titulo">
+      <h1>APP PARTIDO DIRECTO</h1>
+      <p>CF Navarcles</p>
+    </div>
+  </header>
+
+  <section class="marcador">
+
+    <div class="equipo">
+      <h2>LOCAL</h2>
+      <div id="local">0</div>
+    </div>
+
+    <div class="centro">
+      <div id="cronometro">00:00</div>
+    </div>
+
+    <div class="equipo">
+      <h2>RIVAL</h2>
+      <div id="visitante">0</div>
+    </div>
+
+  </section>
+
+  <section class="campo">
+
+    <div class="linea-centro"></div>
+
+    <div class="circulo-centro"></div>
+
+    <div class="jugadora portera">1</div>
+    <div class="jugadora defensa1">2</div>
+    <div class="jugadora defensa2">3</div>
+    <div class="jugadora medio">4</div>
+    <div class="jugadora delantera">5</div>
+
+  </section>
+
+  <section class="botones">
+
+    <button onclick="iniciarPartido()">▶️ Iniciar</button>
+
+    <button onclick="pausarPartido()">⏸️ Pausar</button>
+
+    <button onclick="reiniciarPartido()">🔄 Reiniciar</button>
+
+    <button onclick="golLocal()">⚽ Gol Local</button>
+
+    <button onclick="golVisitante()">⚽ Gol Rival</button>
+
+  </section>
+
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
