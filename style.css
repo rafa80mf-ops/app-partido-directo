@@ -5,8 +5,8 @@
 }
 
 body{
-    background:#e9ecef;
-    font-family:Arial, Helvetica, sans-serif;
+    font-family:Arial,Helvetica,sans-serif;
+    background:#ececec;
 }
 
 .app{
@@ -23,6 +23,7 @@ body{
     color:white;
     display:flex;
     align-items:center;
+    gap:15px;
     padding:15px;
 }
 
@@ -36,15 +37,14 @@ body{
     justify-content:center;
     align-items:center;
     font-size:32px;
-    margin-right:15px;
 }
 
-.titulo h1{
+.cabecera h1{
     font-size:22px;
 }
 
-.titulo p{
-    margin-top:5px;
+.cabecera p{
+    margin-top:4px;
     font-size:14px;
 }
 
@@ -60,30 +60,46 @@ body{
 }
 
 .equipo h2{
-    font-size:16px;
-    margin-bottom:10px;
+    font-size:15px;
+    margin-bottom:8px;
 }
 
-.equipo div{
+.equipo span{
     font-size:42px;
     font-weight:bold;
+}
+
+.tiempo{
+    text-align:center;
 }
 
 #cronometro{
     font-size:30px;
     font-weight:bold;
+    margin-bottom:10px;
+}
+
+.tiempo button{
+    padding:8px 12px;
+    margin:2px;
+    border:none;
+    border-radius:8px;
+    background:#0b7a3d;
+    color:white;
+    cursor:pointer;
 }
 
 .campo{
     position:relative;
-    height:500px;
-    margin:15px;
-    border-radius:20px;
+    width:360px;
+    height:520px;
+    margin:15px auto;
     background:#2e8b57;
+    border-radius:18px;
     overflow:hidden;
 }
 
-.linea-centro{
+.linea{
     position:absolute;
     left:50%;
     top:0;
@@ -93,21 +109,21 @@ body{
     transform:translateX(-50%);
 }
 
-.circulo-centro{
+.circulo{
     position:absolute;
+    left:50%;
+    top:50%;
     width:90px;
     height:90px;
     border:3px solid white;
     border-radius:50%;
-    left:50%;
-    top:50%;
     transform:translate(-50%,-50%);
 }
 
 .jugadora{
     position:absolute;
-    width:45px;
-    height:45px;
+    width:46px;
+    height:46px;
     border-radius:50%;
     background:white;
     border:2px solid #222;
@@ -115,41 +131,39 @@ body{
     justify-content:center;
     align-items:center;
     font-weight:bold;
+    cursor:pointer;
 }
 
-.portera{
-    bottom:20px;
-    left:50%;
-    transform:translateX(-50%);
+#jugadora1{
+    left:157px;
+    top:445px;
 }
 
-.defensa1{
-    bottom:120px;
-    left:25%;
+#jugadora2{
+    left:75px;
+    top:340px;
 }
 
-.defensa2{
-    bottom:120px;
-    right:25%;
+#jugadora3{
+    left:240px;
+    top:340px;
 }
 
-.medio{
-    top:50%;
-    left:50%;
-    transform:translate(-50%,-50%);
+#jugadora4{
+    left:157px;
+    top:220px;
 }
 
-.delantera{
-    top:30px;
-    left:50%;
-    transform:translateX(-50%);
+#jugadora5{
+    left:157px;
+    top:60px;
 }
 
-.botones{
+.acciones{
     padding:15px;
 }
 
-.botones button{
+.acciones button{
     width:100%;
     padding:14px;
     margin-bottom:10px;
@@ -161,6 +175,34 @@ body{
     cursor:pointer;
 }
 
-.botones button:hover{
+.acciones button:hover{
     background:#095d2d;
+}
+
+.estadisticas{
+    padding:20px;
+    border-top:1px solid #ddd;
+}
+
+.estadisticas h2{
+    margin-bottom:15px;
+}
+
+.dato{
+    padding:8px 0;
+    font-size:18px;
+}
+
+@media (max-width:420px){
+
+    .app{
+        width:100%;
+        margin:0;
+        border-radius:0;
+    }
+
+    .campo{
+        width:95%;
+    }
+
 }

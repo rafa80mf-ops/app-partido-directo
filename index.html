@@ -1,75 +1,149 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>App Partido Directo</title>
 
-  <link rel="stylesheet" href="style.css">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>App Partido Directo</title>
+
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
 <div class="app">
 
-  <header class="cabecera">
-    <div class="escudo">🛡️</div>
+    <header class="cabecera">
 
-    <div class="titulo">
-      <h1>APP PARTIDO DIRECTO</h1>
-      <p>CF Navarcles</p>
-    </div>
-  </header>
+        <div class="escudo">
+            ⚽
+        </div>
 
-  <section class="marcador">
+        <div>
+            <h1>App Partido Directo</h1>
+            <p>Control de partido</p>
+        </div>
 
-    <div class="equipo">
-      <h2>LOCAL</h2>
-      <div id="local">0</div>
-    </div>
+    </header>
 
-    <div class="centro">
-      <div id="cronometro">00:00</div>
-    </div>
 
-    <div class="equipo">
-      <h2>RIVAL</h2>
-      <div id="visitante">0</div>
-    </div>
+    <section class="marcador">
 
-  </section>
+        <div class="equipo">
+            <h2>LOCAL</h2>
+            <span id="local">0</span>
+        </div>
 
-  <section class="campo">
 
-    <div class="linea-centro"></div>
+        <div class="tiempo">
 
-    <div class="circulo-centro"></div>
+            <div id="cronometro">
+                00:00
+            </div>
 
-    <div class="jugadora portera">1</div>
-    <div class="jugadora defensa1">2</div>
-    <div class="jugadora defensa2">3</div>
-    <div class="jugadora medio">4</div>
-    <div class="jugadora delantera">5</div>
+            <button onclick="iniciarPartido()">
+                ▶️
+            </button>
 
-  </section>
+            <button onclick="pausarPartido()">
+                ⏸️
+            </button>
 
-  <section class="botones">
+            <button onclick="reiniciarPartido()">
+                🔄
+            </button>
 
-    <button onclick="iniciarPartido()">▶️ Iniciar</button>
+        </div>
 
-    <button onclick="pausarPartido()">⏸️ Pausar</button>
 
-    <button onclick="reiniciarPartido()">🔄 Reiniciar</button>
+        <div class="equipo">
+            <h2>RIVAL</h2>
+            <span id="visitante">0</span>
+        </div>
 
-    <button onclick="golLocal()">⚽ Gol Local</button>
 
-    <button onclick="golVisitante()">⚽ Gol Rival</button>
+    </section>
 
-  </section>
+
+
+    <section class="campo">
+
+
+        <div class="linea"></div>
+
+        <div class="circulo"></div>
+
+
+        <div class="jugadora" id="jugadora1">
+            1
+        </div>
+
+        <div class="jugadora" id="jugadora2">
+            2
+        </div>
+
+        <div class="jugadora" id="jugadora3">
+            3
+        </div>
+
+        <div class="jugadora" id="jugadora4">
+            4
+        </div>
+
+        <div class="jugadora" id="jugadora5">
+            5
+        </div>
+
+
+    </section>
+
+
+
+    <section class="acciones">
+
+        <button onclick="golLocal()">
+            ⚽ Gol Local
+        </button>
+
+
+        <button onclick="golVisitante()">
+            ⚽ Gol Rival
+        </button>
+
+
+    </section>
+
+
+
+    <section class="estadisticas">
+
+        <h2>
+            Estadísticas
+        </h2>
+
+
+        <div class="dato">
+            Goles local:
+            <strong id="statsLocal">0</strong>
+        </div>
+
+
+        <div class="dato">
+            Goles rival:
+            <strong id="statsVisitante">0</strong>
+        </div>
+
+
+    </section>
+
+
 
 </div>
+
 
 <script src="script.js"></script>
 
 </body>
+
 </html>
