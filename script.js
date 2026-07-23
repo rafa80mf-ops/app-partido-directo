@@ -182,7 +182,8 @@ function guardarJugadora(){
     jugadoraSeleccionada.dataset.nombre = nombre;
 
     jugadoraSeleccionada.innerHTML =
-        numero + "<br><small>" + nombre + "</small>";
+`<div class="numero">${numero}</div>
+<div class="nombre">${nombre}</div>`;
 
     cerrarModal();
 
