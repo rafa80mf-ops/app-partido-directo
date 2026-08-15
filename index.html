@@ -2,168 +2,542 @@
 <html lang="es">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>App Partido Directo</title>
+<meta charset="UTF-8">
 
-    <link rel="stylesheet" href="style.css">
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0">
+
+<title>Tu Partido en Directo V3</title>
+
+<link rel="stylesheet" href="style.css">
+
 </head>
 
 <body>
 
-<div class="app">
+<!-- ==========================================
+CABECERA
+========================================== -->
 
-    <header class="cabecera">
+<header id="cabecera">
 
-        <div class="escudo">
-            ⚽
-        </div>
+    <div class="equipo">
 
-        <div>
-            <h1>App Partido Directo</h1>
-            <p>Control de partido</p>
-        </div>
+        <input
+            id="nombreLocal"
+            type="text"
+            value="LOCAL">
 
-    </header>
+    </div>
 
+    <div id="marcador">
 
-    <section class="marcador">
+        <span id="marcadorLocal">0</span>
 
-        <div class="equipo">
-            <h2>LOCAL</h2>
-            <span id="local">0</span>
-        </div>
+        <span class="separador">-</span>
 
+        <span id="marcadorVisitante">0</span>
 
-        <div class="tiempo">
+    </div>
 
-            <div id="cronometro">
-                00:00
-            </div>
+    <div id="cronometro">
 
-            <button onclick="iniciarPartido()">
-                ▶️
-            </button>
+        00:00
 
-            <button onclick="pausarPartido()">
-                ⏸️
-            </button>
+    </div>
 
-            <button onclick="reiniciarPartido()">
-                🔄
-            </button>
+    <div class="equipo">
 
-        </div>
+        <input
+            id="nombreVisitante"
+            type="text"
+            value="VISITANTE">
 
+    </div>
 
-        <div class="equipo">
-            <h2>RIVAL</h2>
-            <span id="visitante">0</span>
-        </div>
+</header>
+<!-- ==========================================
+BARRA DE BOTONES
+========================================== -->
 
+<section id="barraBotones">
 
-    </section>
+    <button id="btnInicio">
+        ▶️ Iniciar
+    </button>
 
+    <button id="btnPausa">
+        ⏸️ Pausa
+    </button>
 
+    <button id="btnReiniciar">
+        ⟲ Reiniciar
+    </button>
 
-    <section class="campo">
+    <button id="btnEditar">
+        ✏️ Editar
+    </button>
 
+    <button id="btnGolLocal">
+        ⚽ Gol Local
+    </button>
 
-        <div class="linea"></div>
+    <button id="btnGolVisitante">
+        ⚽ Gol Visitante
+    </button>
 
-        <div class="circulo"></div>
+    <button id="btnCambio">
+        🔄 Cambio
+    </button>
 
+    <button id="btnLesion">
+        🩹 Lesión
+    </button>
 
-        <div class="jugadora" id="jugadora1">
-            1
-        </div>
+    <button id="btnAmarilla">
+        🟨 Amarilla
+    </button>
 
-        <div class="jugadora" id="jugadora2">
-            2
-        </div>
+    <button id="btnRoja">
+        🟥 Roja
+    </button>
+    
+    <button id="btnAsistencia">
+    🅰️ Asistencia
+</button>
 
-        <div class="jugadora" id="jugadora3">
-            3
-        </div>
+    <button id="btnEventos">
+    📋 Eventos
+</button>
 
-        <div class="jugadora" id="jugadora4">
-            4
-        </div>
+<button id="btnActa">
+    📄 Acta
+</button>
 
-        <div class="jugadora" id="jugadora5">
-            5
-        </div>
+<button id="btnEquipo">
+    👥 Equipo
+</button>
 
+<button id="btnFinalizar">
+    🏁 Finalizar partido
+</button>
 
-    </section>
+<button id="btnHistorial">
+    📚 Historial de partidos
+</button>
 
+<button id="btnCalendario">
+    📅 Calendario
+</button>
 
+<div id="menuCalendario" class="oculto">
 
-    <section class="acciones">
+    <button id="btnCalendarioLiga">
+        🏆 Liga
+    </button>
 
-        <button onclick="golLocal()">
-            ⚽ Gol Local
+    <div id="menuLiga" class="oculto">
+
+        <button id="btnNuevoPartidoLiga">
+            ➕ Añadir partido
         </button>
 
+        <div id="listaCalendarioLiga"></div>
 
-        <button onclick="golVisitante()">
-            ⚽ Gol Rival
-        </button>
+    </div>
 
+   <button id="btnCalendarioAmistosos">
+    🤝 Amistosos
+</button>
 
-    </section>
+<div id="menuAmistosos" class="oculto">
 
+    <button id="btnNuevoPartidoAmistoso">
+        ➕ Añadir partido
+    </button>
 
+    <div id="formularioPartidoAmistoso" class="oculto">
 
-    <section class="estadisticas">
+    <label>
+        📅 Fecha
+    </label>
 
-        <h2>
-            Estadísticas
-        </h2>
+    <input
+        type="date"
+        id="fechaPartidoAmistoso"
+    >
 
+    <label>
+        🏠 Equipo local
+    </label>
 
-        <div class="dato">
-            Goles local:
-            <strong id="statsLocal">0</strong>
-        </div>
+    <input
+        type="text"
+        id="localPartidoAmistoso"
+        placeholder="Ej. Navarcles"
+    >
 
+    <label>
+        ✈️ Equipo visitante
+    </label>
 
-        <div class="dato">
-            Goles rival:
-            <strong id="statsVisitante">0</strong>
-        </div>
+    <input
+        type="text"
+        id="visitantePartidoAmistoso"
+        placeholder="Ej. Cardona"
+    >
 
-
-    </section>
-
-
+    <button id="btnGuardarPartidoAmistoso">
+        💾 Guardar partido
+    </button>
 
 </div>
 
+    <div id="listaCalendarioAmistosos"></div>
+
+</div>
+
+<div id="formularioPartidoLiga" class="oculto">
+
+    <label>
+        📅 Fecha
+    </label>
+
+    <input
+        type="date"
+        id="fechaPartidoLiga"
+    >
+
+
+    <label>
+        🏠 Equipo local
+    </label>
+
+    <input
+        type="text"
+        id="localPartidoLiga"
+        placeholder="Ej. Navarcles"
+    >
+
+
+    <label>
+        ✈️ Equipo visitante
+    </label>
+
+    <input
+        type="text"
+        id="visitantePartidoLiga"
+        placeholder="Ej. Cardona"
+    >
+
+
+    <button id="btnGuardarPartidoLiga">
+        💾 Guardar partido
+    </button>
+
+</div>
+
+</section>
+<!-- ==========================================
+CONTENEDOR PRINCIPAL
+========================================== -->
+
+<div id="contenedorPrincipal">
+
+    <!-- ==========================
+     CAMPO DE JUEGO
+========================== -->
+
+<div id="campo">
+
+    <!-- Línea central -->
+    <div class="lineaCentral"></div>
+
+    <!-- Círculo central -->
+    <div class="circuloCentral"></div>
+
+    <!-- Áreas -->
+    <div class="areaLocal"></div>
+    <div class="areaVisitante"></div>
+
+    <div class="areaPequenaLocal"></div>
+    <div class="areaPequenaVisitante"></div>
+
+    <!-- Balón -->
+    <div id="balon"></div>
+
+    <!-- ==========================================
+         JUGADORAS TITULARES
+    ========================================== -->
+
+    <div id="j1" class="jugadora">
+        <div class="dorsal">1</div>
+        <div class="nombre">POR</div>
+    </div>
+
+    <div id="j2" class="jugadora">
+        <div class="dorsal">2</div>
+        <div class="nombre">DEF</div>
+    </div>
+
+    <div id="j3" class="jugadora">
+        <div class="dorsal">3</div>
+        <div class="nombre">DEF</div>
+    </div>
+
+    <div id="j4" class="jugadora">
+        <div class="dorsal">4</div>
+        <div class="nombre">DEF</div>
+    </div>
+
+    <div id="j5" class="jugadora">
+        <div class="dorsal">5</div>
+        <div class="nombre">DEF</div>
+    </div>
+
+    <div id="j6" class="jugadora">
+        <div class="dorsal">6</div>
+        <div class="nombre">MED</div>
+    </div>
+
+    <div id="j7" class="jugadora">
+        <div class="dorsal">7</div>
+        <div class="nombre">MED</div>
+    </div>
+
+    <div id="j8" class="jugadora">
+        <div class="dorsal">8</div>
+        <div class="nombre">MED</div>
+    </div>
+
+    <div id="j9" class="jugadora">
+        <div class="dorsal">9</div>
+        <div class="nombre">DEL</div>
+    </div>
+
+    <div id="j10" class="jugadora">
+        <div class="dorsal">10</div>
+        <div class="nombre">DEL</div>
+    </div>
+
+    <div id="j11" class="jugadora">
+        <div class="dorsal">11</div>
+        <div class="nombre">DEL</div>
+    </div>
+
+</div>
+
+<!-- ==========================
+     BANQUILLO
+========================== -->
+
+<aside id="banquillo">
+
+    <h2>Banquillo</h2>
+
+    <div id="s1" class="suplente">
+        <div class="dorsal">12</div>
+        <div class="nombre">SUP 1</div>
+    </div>
+
+    <div id="s2" class="suplente">
+        <div class="dorsal">13</div>
+        <div class="nombre">SUP 2</div>
+    </div>
+
+    <div id="s3" class="suplente">
+        <div class="dorsal">14</div>
+        <div class="nombre">SUP 3</div>
+    </div>
+
+    <div id="s4" class="suplente">
+        <div class="dorsal">15</div>
+        <div class="nombre">SUP 4</div>
+    </div>
+
+    <div id="s5" class="suplente">
+        <div class="dorsal">16</div>
+        <div class="nombre">SUP 5</div>
+    </div>
+
+    <div id="s6" class="suplente">
+        <div class="dorsal">17</div>
+        <div class="nombre">SUP 6</div>
+    </div>
+
+    <div id="s7" class="suplente">
+        <div class="dorsal">18</div>
+        <div class="nombre">SUP 7</div>
+    </div>
+
+    <div id="s8" class="suplente">
+        <div class="dorsal">19</div>
+        <div class="nombre">SUP 8</div>
+    </div>
+
+    <div id="s9" class="suplente">
+        <div class="dorsal">20</div>
+        <div class="nombre">SUP 9</div>
+    </div>
+
+</aside>
+
+</div> <!-- contenedorPrincipal -->
+
+<!-- ==========================================
+PANEL DE EVENTOS
+========================================== -->
+
+<section id="panelEventos">
+
+    <h2>Eventos del partido</h2>
+
+    <div id="listaEventos"></div>
+
+</section>
+
+
+<!-- ==========================================
+PANEL DEL ACTA
+========================================== -->
+
+<section id="panelActa" class="oculto">
+
+    <h2>Acta del partido</h2>
+
+    <pre id="textoActa"></pre>
+
+    <button id="btnImprimirActa">
+    🖨️ Imprimir / Guardar PDF
+</button>
+
+<button id="btnCompartirActa">
+    📤 Compartir acta
+</button>
+
+</section>
+
+<!-- ==========================================
+     PANEL EQUIPO
+========================================== -->
+
+<section id="panelEquipo" class="oculto">
+
+    <h2>👥 Equipo</h2>
+
+    <div id="listaEquipo"></div>
+
+    <button id="btnNuevaJugadora">
+        ➕ Añadir jugadora
+    </button>
+
+    <button id="btnGuardarEquipo">
+        💾 Guardar equipo
+    </button>
+
+    <button id="btnAplicarTitulares">
+    ⚽ Aplicar equipo titular
+</button>
+
+</section>
+
+<!-- ==========================================
+PANEL HISTORIAL DE PARTIDOS
+========================================== -->
+
+<section id="panelHistorial" class="oculto">
+
+    <h2>📚 Historial de partidos</h2>
+
+    <div id="listaPartidos"></div>
+
+</section>
+
+<!-- ==========================================
+PANEL CALENDARIO DE LIGA
+========================================== -->
+
+<section id="panelCalendarioLiga" class="oculto">
+
+    <h2>🏆 Calendario de Liga</h2>
+
+    <button id="btnNuevoPartidoLiga">
+        ➕ Añadir partido
+    </button>
+
+    <div id="listaCalendarioLiga"></div>
+
+</section>
+
+<!-- ==========================================
+MODAL EDITAR JUGADORA
+========================================== -->
+
 <div id="modalJugadora" class="modal">
 
-    <div class="modal-contenido">
+    <div class="modalContenido">
 
         <h2>Editar jugadora</h2>
 
-        <label>Número</label>
-        <input type="number" id="numeroJugadora">
+        <label for="nombreJugadora">Nombre</label>
+<input type="text" id="nombreJugadora">
 
-        <label>Nombre</label>
-        <input type="text" id="nombreJugadora">
+        <label for="numeroJugadora">Dorsal</label>
+<input type="number" id="numeroJugadora" min="1" max="99">
 
-        <button onclick="guardarJugadora()">
-            Guardar
-        </button>
+        <div class="botonesModal">
 
-        <button onclick="cerrarModal()">
-            Cancelar
+            <button id="btnGuardarJugadora">
+                Guardar
+            </button>
+
+            <button id="btnCancelarJugadora">
+                Cancelar
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ==========================================
+MODAL ESTADÍSTICAS
+========================================== -->
+
+<div id="modalEstadisticas" class="modal">
+
+    <div class="modalContenido">
+
+        <h2>Estadísticas</h2>
+
+        <p>⚽ Goles:
+    <span id="statGoles">0</span>
+</p>
+
+<p>🎯 Asistencias:
+    <span id="statAsistencias">0</span>
+</p>
+
+<p>🟨 Amarillas:
+    <span id="statAmarillas">0</span>
+</p>
+
+<p>🟥 Rojas:
+    <span id="statRojas">0</span>
+</p>
+
+        <button id="btnCerrarEstadisticas">
+
+            Cerrar
+
         </button>
 
     </div>
 
 </div>
+
 <script src="script.js"></script>
 
 </body>

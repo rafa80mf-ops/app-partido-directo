@@ -1,321 +1,653 @@
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
+/*==================================================
+ TU PARTIDO EN DIRECTO
+ STYLE.CSS V3
+ PARTE 1
+ VARIABLES Y ESTILOS GENERALES
+==================================================*/
+
+/*==================================================
+ VARIABLES
+==================================================*/
+
+:root{
+
+    --verde:#0b7d2d;
+    --verdeOscuro:#066122;
+
+    --gris:#f2f2f2;
+    --grisOscuro:#444;
+
+    --blanco:#ffffff;
+    --negro:#111111;
+
+    --rojo:#d62828;
+    --azul:#1976d2;
+
+    --radio:12px;
+
+    --sombra:0 3px 10px rgba(0,0,0,.20);
+
+    --transicion:.25s;
+
 }
+
+/*==================================================
+ RESET
+==================================================*/
+*{
+
+    margin:0;
+
+    padding:0;
+
+    box-sizing:border-box;
+
+}
+
+/*==================================================
+ BODY
+==================================================*/
 
 body{
+
     font-family:Arial,Helvetica,sans-serif;
-    background:#ececec;
-}
 
-.app{
-    width:390px;
-    margin:20px auto;
-    background:white;
-    border-radius:20px;
-    overflow:hidden;
-    box-shadow:0 10px 30px rgba(0,0,0,.2);
-}
+    background:var(--gris);
 
-.cabecera{
-    background:#0b7a3d;
-    color:white;
-    display:flex;
-    align-items:center;
-    gap:15px;
-    padding:15px;
-}
+    color:var(--negro);
 
-.escudo{
-    width:60px;
-    height:60px;
-    border-radius:50%;
-    background:white;
-    color:#0b7a3d;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    font-size:32px;
-}
-
-.cabecera h1{
-    font-size:22px;
-}
-
-.cabecera p{
-    margin-top:4px;
-    font-size:14px;
-}
-
-.marcador{
-    display:flex;
-    justify-content:space-around;
-    align-items:center;
-    padding:20px;
-}
-
-.equipo{
-    text-align:center;
-}
-
-.equipo h2{
-    font-size:15px;
-    margin-bottom:8px;
-}
-
-.equipo span{
-    font-size:42px;
-    font-weight:bold;
-}
-
-.tiempo{
-    text-align:center;
-}
-
-#cronometro{
-    font-size:30px;
-    font-weight:bold;
-    margin-bottom:10px;
-}
-
-.tiempo button{
-    padding:8px 12px;
-    margin:2px;
-    border:none;
-    border-radius:8px;
-    background:#0b7a3d;
-    color:white;
-    cursor:pointer;
-}
-
-.campo{
-    position:relative;
-    width:360px;
-    height:520px;
-    margin:15px auto;
-    background:#2e8b57;
-    border-radius:18px;
-    overflow:hidden;
-}
-
-.linea{
-    position:absolute;
-    left:50%;
-    top:0;
-    width:2px;
-    height:100%;
-    background:white;
-    transform:translateX(-50%);
-}
-
-.circulo{
-    position:absolute;
-    left:50%;
-    top:50%;
-    width:90px;
-    height:90px;
-    border:3px solid white;
-    border-radius:50%;
-    transform:translate(-50%,-50%);
-}
-
-.jugadora{
-    position:absolute;
-    width:52px;
-height:52px;
-    border-radius:50%;
-    background:#FFD700;
-    border:2px solid #222;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    font-weight:bold;
-    cursor:pointer;
-}
-
-#jugadora1{
-    left:157px;
-    top:445px;
-}
-
-#jugadora2{
-    left:75px;
-    top:340px;
-}
-
-#jugadora3{
-    left:240px;
-    top:340px;
-}
-
-#jugadora4{
-    left:157px;
-    top:220px;
-}
-
-#jugadora5{
-    left:157px;
-    top:60px;
-}
-
-.acciones{
-    padding:15px;
-}
-
-.acciones button{
-    width:100%;
-    padding:14px;
-    margin-bottom:10px;
-    border:none;
-    border-radius:12px;
-    background:#0b7a3d;
-    color:white;
-    font-size:18px;
-    cursor:pointer;
-}
-
-.acciones button:hover{
-    background:#095d2d;
-}
-
-.estadisticas{
-    padding:20px;
-    border-top:1px solid #ddd;
-}
-
-.estadisticas h2{
-    margin-bottom:15px;
-}
-
-.dato{
-    padding:8px 0;
-    font-size:18px;
-}
-
-@media (max-width:420px){
-
-    .app{
-        width:100%;
-        margin:0;
-        border-radius:0;
-    }
-
-    .campo{
-        width:95%;
-    }
-
-}
-/* ===========================
-   MODAL EDITAR JUGADORA
-=========================== */
-
-.modal{
-    display:none;
-    position:fixed;
-    left:0;
-    top:0;
-    width:100%;
-    height:100%;
-    background:rgba(0,0,0,.6);
-    justify-content:center;
-    align-items:center;
-    z-index:9999;
-}
-
-.modal-contenido{
-
-    background:white;
-
-    width:320px;
-
-    padding:20px;
-
-    border-radius:15px;
+    min-height:100vh;
 
 }
 
-.modal-contenido h2{
+/*==================================================
+ TITULOS
+==================================================*/
 
-    margin-bottom:15px;
-
-}
-
-.modal-contenido label{
-
-    display:block;
-
-    margin-top:10px;
+h1,
+h2,
+h3{
 
     font-weight:bold;
 
-}
-
-.modal-contenido input{
-
-    width:100%;
-
-    padding:10px;
-
-    margin-top:5px;
+    color:var(--grisOscuro);
 
     margin-bottom:10px;
 
-    border-radius:8px;
+}
 
-    border:1px solid #ccc;
+/*==================================================
+ INPUTS
+==================================================*/
+
+input{
+
+    padding:8px;
+
+    border:1px solid #bbb;
+
+    border-radius:6px;
 
     font-size:16px;
 
+    outline:none;
+
 }
 
-.modal-contenido button{
+input:focus{
+
+    border-color:var(--azul);
+
+}
+
+/*==================================================
+ BOTONES
+==================================================*/
+
+button{
+
+    cursor:pointer;
+
+    border:none;
+
+    border-radius:8px;
+
+    transition:var(--transicion);
+
+    font-size:15px;
+
+}
+
+button:hover{
+
+    transform:scale(1.03);
+
+}
+
+/*==================================================
+ FIN PARTE 1
+==================================================*/
+/*==================================================
+ TU PARTIDO EN DIRECTO
+ STYLE.CSS V3
+ PARTE 2
+ CABECERA, MARCADOR Y CRONÓMETRO
+==================================================*/
+
+/*==================================================
+ CABECERA
+==================================================*/
+
+#cabecera{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    gap:20px;
+
+    padding:15px 20px;
+
+    background:var(--verde);
+
+    color:var(--blanco);
+
+    box-shadow:var(--sombra);
+
+}
+
+/*==================================================
+ EQUIPOS
+==================================================*/
+
+.equipo{
+
+    flex:1;
+
+}
+
+.equipo input{
 
     width:100%;
 
-    padding:12px;
+    text-align:center;
 
-    margin-top:10px;
+    font-size:20px;
 
-    border:none;
+    font-weight:bold;
+
+    background:var(--blanco);
+
+    color:var(--negro);
+
+}
+
+/*==================================================
+ MARCADOR
+==================================================*/
+
+#marcador{
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    gap:15px;
+
+    min-width:170px;
+
+    font-size:40px;
+
+    font-weight:bold;
+
+    color:var(--blanco);
+
+}
+
+#local,
+#visitante{
+
+    min-width:40px;
+
+    text-align:center;
+
+}
+
+.separador{
+
+    font-size:34px;
+
+}
+
+/*==================================================
+ CRONÓMETRO
+==================================================*/
+
+#cronometro{
+
+    min-width:120px;
+
+    text-align:center;
+
+    font-size:28px;
+
+    font-weight:bold;
+
+    background:var(--negro);
+
+    color:#00ff66;
+
+    padding:10px 15px;
 
     border-radius:10px;
 
-    background:#0b7a3d;
+    font-family:monospace;
 
-    color:white;
-
-    font-size:16px;
-
-    cursor:pointer;
+    box-shadow:inset 0 0 8px rgba(0,0,0,.5);
 
 }
-.numero{
-    font-size:22px;
+
+/*==================================================
+ FIN PARTE 2
+==================================================*/
+/*==================================================
+ TU PARTIDO EN DIRECTO
+ STYLE.CSS V3
+ PARTE 3
+ BARRA DE BOTONES
+==================================================*/
+
+#barraBotones{
+
+    display:flex;
+
+    flex-wrap:wrap;
+
+    justify-content:center;
+
+    align-items:center;
+
+    gap:10px;
+
+    padding:15px;
+
+    background:var(--blanco);
+
+    box-shadow:var(--sombra);
+
+}
+
+#barraBotones button{
+
+    min-width:120px;
+
+    padding:12px 16px;
+
+    background:var(--verde);
+
+    color:var(--blanco);
+
     font-weight:bold;
+
+    border-radius:8px;
+
 }
 
-.nombre{
+#barraBotones button:hover{
+
+    background:var(--verdeOscuro);
+
+}
+
+#barraBotones button:active{
+
+    transform:scale(.96);
+
+}
+
+/*==================================================
+ COLORES ESPECIALES
+==================================================*/
+
+#btnGolLocal{
+
+    background:#1e88e5;
+
+}
+
+#btnGolVisitante{
+
+    background:#e53935;
+
+}
+
+#btnEditar{
+
+    background:#ff9800;
+
+}
+
+#btnCambio{
+
+    background:#8e24aa;
+
+}
+
+#btnEventos{
+
+    background:#546e7a;
+
+}
+
+#btnReiniciar{
+
+    background:#616161;
+
+}
+
+/*==================================================
+ FIN PARTE 3
+==================================================*/
+/*==================================================
+ TU PARTIDO EN DIRECTO
+ STYLE.CSS V3
+ PARTE 4
+ CAMPO DE FÚTBOL
+==================================================*/
+
+/*==================================================
+ CONTENEDOR PRINCIPAL
+==================================================*/
+
+#contenedorPrincipal{
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:flex-start;
+
+    gap:20px;
+
+    padding:20px;
+
+    flex-wrap:wrap;
+
+}
+
+/*==================================================
+ CAMPO
+==================================================*/
+
+#campo{
+
+    position:relative;
+
+    width:900px;
+
+    max-width:100%;
+
+    height:600px;
+
+    background:#2e8b57;
+
+    border:4px solid #ffffff;
+
+    border-radius:12px;
+
+    overflow:hidden;
+
+    box-shadow:var(--sombra);
+
+}
+
+/*==================================================
+ LÍNEA CENTRAL
+==================================================*/
+
+#campo::before{
+
+    content:"";
 
     position:absolute;
 
-    top:60px;
-
     left:50%;
+
+    top:0;
+
+    width:3px;
+
+    height:100%;
+
+    background:#ffffff;
 
     transform:translateX(-50%);
 
-    width:70px;
+}
 
-    text-align:center;
+/*==================================================
+ CÍRCULO CENTRAL
+==================================================*/
 
-    font-size:10px;
+#campo::after{
+
+    content:"";
+
+    position:absolute;
+
+    left:50%;
+
+    top:50%;
+
+    width:140px;
+
+    height:140px;
+
+    border:3px solid #ffffff;
+
+    border-radius:50%;
+
+    transform:translate(-50%,-50%);
+
+}
+
+/*==================================================
+ ÁREAS GRANDES
+==================================================*/
+
+.areaLocal,
+.areaVisitante{
+
+    position:absolute;
+
+    width:120px;
+
+    height:260px;
+
+    border:3px solid #ffffff;
+
+}
+
+.areaLocal{
+
+    left:0;
+
+    top:170px;
+
+    border-left:none;
+
+}
+
+.areaVisitante{
+
+    right:0;
+
+    top:170px;
+
+    border-right:none;
+
+}
+
+/*==================================================
+ ÁREAS PEQUEÑAS
+==================================================*/
+
+.areaPequenaLocal,
+.areaPequenaVisitante{
+
+    position:absolute;
+
+    width:55px;
+
+    height:140px;
+
+    border:3px solid #ffffff;
+
+}
+
+.areaPequenaLocal{
+
+    left:0;
+
+    top:230px;
+
+    border-left:none;
+
+}
+
+.areaPequenaVisitante{
+
+    right:0;
+
+    top:230px;
+
+    border-right:none;
+
+}
+
+/*==================================================
+ FIN PARTE 4
+==================================================*/
+/*==================================================
+ TU PARTIDO EN DIRECTO
+ STYLE.CSS V3
+ PARTE 5
+ JUGADORAS, SUPLENTES Y BALÓN
+==================================================*/
+
+/*==================================================
+ JUGADORAS Y SUPLENTES
+==================================================*/
+
+.jugadora,
+.suplente{
+
+    position:absolute;
+
+    width:60px;
+
+    height:60px;
+
+    border-radius:50%;
+
+    background:#ffd600;
+
+    color:#000000;
+
+    display:flex;
+
+    flex-direction:column;
+
+    justify-content:center;
+
+    align-items:center;
+
+    cursor:grab;
+
+    user-select:none;
+
+    box-shadow:0 3px 8px rgba(0,0,0,.35);
+
+    transition:transform .15s;
+
+    z-index:10;
+
+}
+
+.jugadora:hover,
+.suplente:hover{
+
+    transform:scale(1.08);
+
+}
+
+.jugadora:active,
+.suplente:active{
+
+    cursor:grabbing;
+
+}
+/*==================================================
+ INDICADOR DE TARJETA AMARILLA
+==================================================*/
+
+.jugadora.tieneAmarilla::after,
+.suplente.tieneAmarilla::after{
+
+    content:"";
+
+    position:absolute;
+
+    width:16px;
+
+    height:16px;
+
+    background:#ffd600;
+
+    border:2px solid #000000;
+
+    border-radius:2px;
+
+    top:-6px;
+
+    right:-6px;
+
+    z-index:50;
+
+    box-sizing:border-box;
+
+    pointer-events:none;
+
+}
+/*==================================================
+ DORSAL
+==================================================*/
+
+.dorsal{
+
+    font-size:18px;
 
     font-weight:bold;
 
-    color:#FFD700;
+    line-height:18px;
 
-    text-shadow:1px 1px 2px black;
+}
+
+/*==================================================
+ NOMBRE
+==================================================*/
+
+.nombre{
+
+    font-size:10px;
+
+    text-align:center;
+
+    padding:0 2px;
 
     white-space:nowrap;
 
@@ -323,6 +655,959 @@ height:52px;
 
     text-overflow:ellipsis;
 
-    pointer-events:none;
+    width:54px;
 
 }
+
+/*==================================================
+ BALÓN
+==================================================*/
+
+#balon{
+
+    position:absolute;
+
+    width:32px;
+
+    height:32px;
+
+    border-radius:50%;
+
+    background:
+        radial-gradient(
+            circle at 50% 50%,
+            #222 0 18%,
+            transparent 19%
+        ),
+        radial-gradient(
+            circle at 20% 25%,
+            #222 0 12%,
+            transparent 13%
+        ),
+        radial-gradient(
+            circle at 80% 25%,
+            #222 0 12%,
+            transparent 13%
+        ),
+        radial-gradient(
+            circle at 20% 75%,
+            #222 0 12%,
+            transparent 13%
+        ),
+        radial-gradient(
+            circle at 80% 75%,
+            #222 0 12%,
+            transparent 13%
+        ),
+        #ffffff;
+
+    border:2px solid #222;
+
+    cursor:grab;
+
+    z-index:100;
+
+    box-shadow:0 2px 5px rgba(0,0,0,.35);
+
+}
+
+#balon:active{
+
+    cursor:grabbing;
+
+}
+/*==================================================
+ SUPLENTES
+==================================================*/
+
+#banquillo{
+
+    position:relative;
+
+    width:260px;
+
+    min-height:600px;
+
+    background:#ececec;
+
+    border-radius:12px;
+
+    padding:10px;
+
+    box-shadow:var(--sombra);
+
+}
+
+#banquillo h2{
+
+    text-align:center;
+
+    margin-bottom:15px;
+
+}
+
+/*==================================================
+ FIN PARTE 5
+==================================================*/
+/*==================================================
+ TU PARTIDO EN DIRECTO
+ STYLE.CSS V3
+ PARTE 6
+ PANEL DE EVENTOS Y ACTA
+==================================================*/
+
+/*==================================================
+ PANEL LATERAL
+==================================================*/
+
+#panelEventos{
+
+    width:320px;
+
+    max-width:100%;
+
+    background:var(--blanco);
+
+    border-radius:12px;
+
+    box-shadow:var(--sombra);
+
+    padding:15px;
+
+}
+
+/*==================================================
+ TÍTULOS
+==================================================*/
+
+#panelEventos h2{
+
+    text-align:center;
+
+    margin-bottom:15px;
+
+    color:var(--verdeOscuro);
+
+}
+
+/*==================================================
+ HISTORIAL
+==================================================*/
+
+#listaEventos{
+
+    height:280px;
+
+    overflow-y:auto;
+
+    border:1px solid #ddd;
+
+    border-radius:8px;
+
+    background:#fafafa;
+
+    padding:10px;
+
+    margin-bottom:20px;
+
+    font-size:14px;
+
+}
+
+#listaEventos div{
+
+    padding:6px 4px;
+
+    border-bottom:1px solid #e5e5e5;
+
+}
+
+#listaEventos div:last-child{
+
+    border-bottom:none;
+
+}
+
+/*==================================================
+ ACTA
+==================================================*/
+
+#textoActa{
+
+    width:100%;
+
+    min-height:260px;
+
+    border:1px solid #ccc;
+
+    border-radius:8px;
+
+    background:#ffffff;
+
+    padding:12px;
+
+    white-space:pre-wrap;
+
+    overflow-y:auto;
+
+    font-family:Consolas, monospace;
+
+    font-size:13px;
+
+    line-height:1.5;
+
+}
+
+/*==================================================
+ SCROLL
+==================================================*/
+
+#listaEventos::-webkit-scrollbar,
+#textoActa::-webkit-scrollbar{
+
+    width:8px;
+
+}
+
+#listaEventos::-webkit-scrollbar-thumb,
+#textoActa::-webkit-scrollbar-thumb{
+
+    background:#bdbdbd;
+
+    border-radius:8px;
+
+}
+
+#listaEventos::-webkit-scrollbar-thumb:hover,
+#textoActa::-webkit-scrollbar-thumb:hover{
+
+    background:#8d8d8d;
+
+}
+
+/*==================================================
+ PANEL DE EVENTOS OCULTO
+==================================================*/
+
+#panelEventos.oculto{
+
+    display:none;
+
+}
+
+/*==================================================
+ ELEMENTOS OCULTOS
+==================================================*/
+
+.oculto{
+
+    display:none !important;
+
+}
+
+/*==================================================
+ PANEL DEL ACTA
+==================================================*/
+
+#panelActa{
+
+    width:320px;
+
+    max-width:100%;
+
+    background:var(--blanco);
+
+    border-radius:12px;
+
+    box-shadow:var(--sombra);
+
+    padding:15px;
+
+}
+
+/*==================================================
+ TÍTULO DEL ACTA
+==================================================*/
+
+#panelActa h2{
+
+    text-align:center;
+
+    margin-bottom:15px;
+
+    color:var(--verdeOscuro);
+
+}
+
+/*==================================================
+ ACTA OCULTA
+==================================================*/
+
+#panelActa.oculto{
+
+    display:none;
+
+}
+
+/*==================================================
+ FIN PARTE 6
+==================================================*/
+/*==================================================
+ TU PARTIDO EN DIRECTO
+ STYLE.CSS V3
+ PARTE 7
+ MODALES
+==================================================*/
+
+/*==================================================
+ FONDO DEL MODAL
+==================================================*/
+
+.modal{
+
+    position:fixed;
+
+    left:0;
+
+    top:0;
+
+    width:100%;
+
+    height:100%;
+
+    display:none;
+
+    justify-content:center;
+
+    align-items:center;
+
+    background:rgba(0,0,0,.55);
+
+    z-index:1000;
+
+}
+
+/*==================================================
+ CONTENIDO
+==================================================*/
+
+.modalContenido{
+
+    width:340px;
+
+    max-width:90%;
+
+    background:var(--blanco);
+
+    border-radius:12px;
+
+    padding:20px;
+
+    box-shadow:var(--sombra);
+
+    animation:aparecerModal .25s ease;
+
+}
+
+/*==================================================
+ TÍTULO
+==================================================*/
+
+.modalContenido h2{
+
+    text-align:center;
+
+    margin-bottom:20px;
+
+    color:var(--verdeOscuro);
+
+}
+
+/*==================================================
+ ETIQUETAS
+==================================================*/
+
+.modalContenido label{
+
+    display:block;
+
+    margin-top:10px;
+
+    margin-bottom:5px;
+
+    font-weight:bold;
+
+}
+
+/*==================================================
+ INPUTS
+==================================================*/
+
+.modalContenido input{
+
+    width:100%;
+
+    margin-bottom:12px;
+
+}
+
+/*==================================================
+ BOTONES
+==================================================*/
+
+.botonesModal{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    gap:10px;
+
+    margin-top:20px;
+
+}
+
+.botonesModal button{
+
+    flex:1;
+
+    padding:10px;
+
+    font-weight:bold;
+
+}
+
+#btnGuardarJugadora{
+
+    background:var(--verde);
+
+    color:var(--blanco);
+
+}
+
+#btnGuardarJugadora:hover{
+
+    background:var(--verdeOscuro);
+
+}
+
+#btnCancelarJugadora{
+
+    background:#d32f2f;
+
+    color:var(--blanco);
+
+}
+
+#btnCancelarJugadora:hover{
+
+    background:#b71c1c;
+
+}
+
+#btnCerrarEstadisticas{
+
+    width:100%;
+
+    margin-top:20px;
+
+    padding:10px;
+
+    background:var(--azul);
+
+    color:var(--blanco);
+
+    font-weight:bold;
+
+}
+
+#btnCerrarEstadisticas:hover{
+
+    background:#0d5db8;
+
+}
+
+/*==================================================
+ ANIMACIÓN
+==================================================*/
+
+@keyframes aparecerModal{
+
+    from{
+
+        opacity:0;
+
+        transform:scale(.9);
+
+    }
+
+    to{
+
+        opacity:1;
+
+        transform:scale(1);
+
+    }
+
+}
+
+/*==================================================
+ FIN PARTE 7
+==================================================*/
+/*==================================================
+ TU PARTIDO EN DIRECTO
+ STYLE.CSS V3
+ PARTE 8
+ RESPONSIVE
+==================================================*/
+
+/*==================================================
+ TABLETS
+==================================================*/
+
+@media (max-width:1024px){
+
+    #cabecera{
+
+        flex-direction:column;
+
+        gap:15px;
+
+    }
+
+    #marcador{
+
+        order:2;
+
+    }
+
+    #cronometro{
+
+        order:3;
+
+    }
+
+    #contenedorPrincipal{
+
+        flex-direction:column;
+
+        align-items:center;
+
+    }
+
+    #campo{
+
+        width:100%;
+
+        max-width:850px;
+
+        height:560px;
+
+    }
+
+    #banquillo{
+
+        width:100%;
+
+        min-height:220px;
+
+    }
+
+    #panelEventos{
+
+        width:100%;
+
+    }
+
+}
+
+/*==================================================
+ MÓVILES
+==================================================*/
+
+@media (max-width:768px){
+
+    #barraBotones{
+
+        gap:8px;
+
+    }
+
+    #barraBotones button{
+
+        width:48%;
+
+        min-width:140px;
+
+    }
+
+    #campo{
+
+        height:480px;
+
+    }
+
+    .jugadora,
+    .suplente{
+
+        width:50px;
+
+        height:50px;
+
+    }
+
+    .dorsal{
+
+        font-size:15px;
+
+    }
+
+    .nombre{
+
+        font-size:8px;
+
+        width:46px;
+
+    }
+
+    #cronometro{
+
+        font-size:22px;
+
+    }
+
+}
+
+/*==================================================
+ MÓVILES PEQUEÑOS
+==================================================*/
+
+@media (max-width:480px){
+
+    #cabecera{
+
+        padding:10px;
+
+    }
+
+    #marcador{
+
+        font-size:30px;
+
+        gap:10px;
+
+    }
+
+    #cronometro{
+
+        width:100%;
+
+        font-size:20px;
+
+    }
+
+    #barraBotones button{
+
+        width:100%;
+
+    }
+
+    #campo{
+
+        height:380px;
+
+    }
+
+    .jugadora,
+    .suplente{
+
+        width:44px;
+
+        height:44px;
+
+    }
+
+    .dorsal{
+
+        font-size:13px;
+
+    }
+
+    .nombre{
+
+        display:none;
+
+    }
+
+    #panelEventos{
+
+        padding:10px;
+
+    }
+
+    #listaEventos{
+
+        height:180px;
+
+    }
+
+    #textoActa{
+
+        min-height:180px;
+
+        font-size:12px;
+
+    }
+
+}
+
+/*==================================================
+ FIN PARTE 8
+==================================================*/
+/*==================================================
+ TU PARTIDO EN DIRECTO
+ STYLE.CSS V3
+ PARTE 9
+ EFECTOS VISUALES Y ACABADO FINAL
+==================================================*/
+
+/*==================================================
+ TRANSICIONES GENERALES
+==================================================*/
+
+button,
+.jugadora,
+.suplente,
+#balon,
+input{
+
+    transition:all .25s ease;
+
+}
+
+/*==================================================
+ EFECTO BOTONES
+==================================================*/
+
+button:hover{
+
+    transform:translateY(-2px);
+
+    box-shadow:0 4px 10px rgba(0,0,0,.25);
+
+}
+
+button:active{
+
+    transform:scale(.97);
+
+}
+
+/*==================================================
+ EFECTO JUGADORAS
+==================================================*/
+
+.jugadora:hover,
+.suplente:hover{
+
+    box-shadow:0 0 18px rgba(255,255,255,.9);
+
+    z-index:999;
+
+}
+
+.jugadora.seleccionada,
+.suplente.seleccionada{
+
+    outline:4px solid #ffd600;
+
+    outline-offset:3px;
+
+}
+
+/*==================================================
+ BALÓN
+==================================================*/
+
+#balon:hover{
+
+    transform:scale(1.15);
+
+}
+
+#balon:active{
+
+    transform:scale(.95);
+
+}
+
+/*==================================================
+ CAMPO
+==================================================*/
+
+#campo{
+
+    background-image:
+
+        repeating-linear-gradient(
+
+            0deg,
+
+            rgba(255,255,255,.05) 0px,
+
+            rgba(255,255,255,.05) 40px,
+
+            transparent 40px,
+
+            transparent 80px
+
+        );
+
+}
+
+/*==================================================
+ EVENTOS
+==================================================*/
+
+#listaEventos div:hover{
+
+    background:#eef6ff;
+
+}
+
+/*==================================================
+ ACTA
+==================================================*/
+
+#textoActa{
+
+    user-select:text;
+
+}
+
+/*==================================================
+ SCROLLBAR GENERAL
+==================================================*/
+
+::-webkit-scrollbar{
+
+    width:10px;
+
+    height:10px;
+
+}
+
+::-webkit-scrollbar-track{
+
+    background:#eeeeee;
+
+}
+
+::-webkit-scrollbar-thumb{
+
+    background:#9e9e9e;
+
+    border-radius:20px;
+
+}
+
+::-webkit-scrollbar-thumb:hover{
+
+    background:#757575;
+
+}
+
+/*==================================================
+ ANIMACIONES
+==================================================*/
+
+@keyframes aparecer{
+
+    from{
+
+        opacity:0;
+
+        transform:translateY(10px);
+
+    }
+
+    to{
+
+        opacity:1;
+
+        transform:translateY(0);
+
+    }
+
+}
+
+#panelEventos,
+#campo,
+#banquillo{
+
+    animation:aparecer .4s ease;
+
+}
+
+/*==================================================
+ SELECCIÓN DE TEXTO
+==================================================*/
+
+::selection{
+
+    background:#2196f3;
+
+    color:#ffffff;
+
+}
+
+/*==================================================
+  PLANTILLA DEL EQUIPO
+==================================================*/
+
+.filaJugadoraEquipo{
+
+    display:grid;
+
+    grid-template-columns:
+    35px
+    60px
+    minmax(140px, 1fr)
+    80px
+    90px
+    90px;
+
+    align-items:center;
+
+    gap:8px;
+
+    padding:8px 10px;
+
+    margin-bottom:5px;
+
+    border-bottom:1px solid #ccc;
+
+}
+
+
+.filaJugadoraEquipo span{
+
+    overflow:hidden;
+
+    white-space:nowrap;
+
+    text-overflow:ellipsis;
+
+}
+
+
+.filaJugadoraEquipo button{
+
+    padding:6px 8px;
+
+    white-space:nowrap;
+
+}
+/*==================================================
+ FIN STYLE.CSS V3
+==================================================*/

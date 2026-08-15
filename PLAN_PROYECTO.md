@@ -16,6 +16,7 @@ Crear una aplicación para seguir partidos de fútbol en directo.
 ## Tecnologías
 - Firebase
 - GitHub
+- react
 - JavaScript
 - HTML
 - CSS
