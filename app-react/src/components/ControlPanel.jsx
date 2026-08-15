@@ -9,6 +9,9 @@ export default function ControlPanel({
   onCard,
   onSubstitution,
   onManualScoreChange,
+  selectingInjured,
+  onInitiateInjury,
+  onInitiateYellowCard,
 }) {
   const buttonBaseClass = 'action-button';
 
@@ -65,6 +68,26 @@ export default function ControlPanel({
         </button>
         <button type="button" className={buttonBaseClass} onClick={() => onSubstitution('visitor')}>
           🔄 Cambio visitante
+        </button>
+      </div>
+
+      <div className="control-row">
+        <button
+          type="button"
+          className={`${buttonBaseClass} ${selectingInjured ? 'active-mode' : ''}`}
+          onClick={onInitiateInjury}
+        >
+          {selectingInjured ? '🩹 Selecciona lesionada...' : '🩹 Marcar lesión'}
+        </button>
+      </div>
+
+      <div className="control-row">
+        <button
+          type="button"
+          className={buttonBaseClass}
+          onClick={onInitiateYellowCard}
+        >
+          🟨 Tarjeta amarilla
         </button>
       </div>
 

@@ -18,25 +18,25 @@ export const DB_SCHEMA = {
 
 export function createEmptyMatchState() {
   const lineUp = [
-    { id: 1, number: 1, name: 'Portera', x: 10, y: 50, role: 'POR' },
-    { id: 2, number: 2, name: 'Defensa', x: 22, y: 20, role: 'DEF' },
-    { id: 3, number: 3, name: 'Defensa', x: 22, y: 35, role: 'DEF' },
-    { id: 4, number: 4, name: 'Defensa', x: 22, y: 65, role: 'DEF' },
-    { id: 5, number: 5, name: 'Defensa', x: 22, y: 80, role: 'DEF' },
-    { id: 6, number: 6, name: 'Medio', x: 45, y: 22, role: 'MED' },
-    { id: 7, number: 7, name: 'Medio', x: 45, y: 42, role: 'MED' },
-    { id: 8, number: 8, name: 'Medio', x: 45, y: 58, role: 'MED' },
-    { id: 9, number: 9, name: 'Delantera', x: 45, y: 78, role: 'DEL' },
-    { id: 10, number: 10, name: 'Delantera', x: 68, y: 35, role: 'DEL' },
-    { id: 11, number: 11, name: 'Delantera', x: 68, y: 65, role: 'DEL' },
+    { id: 1, number: 1, name: 'Portera', x: 10, y: 50, role: 'POR', yellowCards: 0, redCards: 0 },
+    { id: 2, number: 2, name: 'Defensa', x: 22, y: 20, role: 'DEF', yellowCards: 0, redCards: 0 },
+    { id: 3, number: 3, name: 'Defensa', x: 22, y: 35, role: 'DEF', yellowCards: 0, redCards: 0 },
+    { id: 4, number: 4, name: 'Defensa', x: 22, y: 65, role: 'DEF', yellowCards: 0, redCards: 0 },
+    { id: 5, number: 5, name: 'Defensa', x: 22, y: 80, role: 'DEF', yellowCards: 0, redCards: 0 },
+    { id: 6, number: 6, name: 'Medio', x: 45, y: 22, role: 'MED', yellowCards: 0, redCards: 0 },
+    { id: 7, number: 7, name: 'Medio', x: 45, y: 42, role: 'MED', yellowCards: 0, redCards: 0 },
+    { id: 8, number: 8, name: 'Medio', x: 45, y: 58, role: 'MED', yellowCards: 0, redCards: 0 },
+    { id: 9, number: 9, name: 'Delantera', x: 45, y: 78, role: 'DEL', yellowCards: 0, redCards: 0 },
+    { id: 10, number: 10, name: 'Delantera', x: 68, y: 35, role: 'DEL', yellowCards: 0, redCards: 0 },
+    { id: 11, number: 11, name: 'Delantera', x: 68, y: 65, role: 'DEL', yellowCards: 0, redCards: 0 },
   ];
 
   const bench = [
-    { id: 12, number: 12, name: 'Suplente 1', role: 'SUP' },
-    { id: 13, number: 13, name: 'Suplente 2', role: 'SUP' },
-    { id: 14, number: 14, name: 'Suplente 3', role: 'SUP' },
-    { id: 15, number: 15, name: 'Suplente 4', role: 'SUP' },
-    { id: 16, number: 16, name: 'Suplente 5', role: 'SUP' },
+    { id: 12, number: 12, name: 'Suplente 1', role: 'SUP', yellowCards: 0, redCards: 0 },
+    { id: 13, number: 13, name: 'Suplente 2', role: 'SUP', yellowCards: 0, redCards: 0 },
+    { id: 14, number: 14, name: 'Suplente 3', role: 'SUP', yellowCards: 0, redCards: 0 },
+    { id: 15, number: 15, name: 'Suplente 4', role: 'SUP', yellowCards: 0, redCards: 0 },
+    { id: 16, number: 16, name: 'Suplente 5', role: 'SUP', yellowCards: 0, redCards: 0 },
   ];
 
   return {

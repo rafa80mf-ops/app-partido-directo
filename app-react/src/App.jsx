@@ -5,6 +5,8 @@ import ControlPanel from './components/ControlPanel';
 import MatchEvents from './components/MatchEvents';
 import PitchField from './components/PitchField';
 import RosterPanel from './components/RosterPanel';
+import SubstitutionModal from './components/SubstitutionModal';
+import YellowCardModal from './components/YellowCardModal';
 import { createEmptyMatchState, loadMatchState, saveMatchState } from './data/storage';
 import { loadMatchSnapshot, saveMatchSnapshot } from './data/localDb';
 
@@ -20,6 +22,9 @@ function buildEvent(type, label, team = 'neutral') {
 
 function App() {
   const [matchState, setMatchState] = useState(() => loadMatchState());
+  const [injuredPlayerModal, setInjuredPlayerModal] = useState(null);
+  const [selectingInjured, setSelectingInjured] = useState(false);
+  const [yellowCardModal, setYellowCardModal] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -270,6 +275,148 @@ function App() {
     });
   };
 
+  const handleInjurySubstitution = (substituteId) => {
+    if (!injuredPlayerModal) return;
+
+    const { player: injuredPlayer } = injuredPlayerModal;
+
+    updateMatchState((currentState) => {
+      // Encontrar la suplente que entra
+      const substitute = currentState.roster.bench.find((p) => p.id === substituteId);
+      if (!substitute) return currentState;
+
+      // Sacar a la lesionada del campo y ponerla en banquillo
+      const updatedInjured = { ...injuredPlayer, injured: true };
+      const nextLocal = currentState.roster.local.map((p) =>
+        p.id === injuredPlayer.id ? updatedInjured : p,
+      );
+      const injuredOutOfField = nextLocal.filter((p) => p.id !== injuredPlayer.id);
+      const benchWithInjured = [
+        ...currentState.roster.bench.filter((p) => p.id !== injuredPlayer.id),
+        updatedInjured,
+      ];
+
+      // Traer la suplente al campo en la misma posición
+      const substituteIntoField = {
+        ...substitute,
+        x: injuredPlayer.x,
+        y: injuredPlayer.y,
+        injured: false,
+      };
+      const benchWithoutSubstitute = benchWithInjured.filter((p) => p.id !== substituteId);
+      const localWithSubstitute = [...injuredOutOfField, substituteIntoField];
+
+      return {
+        ...currentState,
+        roster: {
+          local: localWithSubstitute,
+          bench: benchWithoutSubstitute,
+        },
+        events: [
+          ...currentState.events,
+          buildEvent(
+            'substitution',
+            `${injuredPlayer.name} sale por lesión. Entra ${substitute.name}`,
+            'neutral',
+          ),
+        ],
+      };
+    });
+
+    setInjuredPlayerModal(null);
+  };
+
+  const handlePlayerClick = (player) => {
+    if (selectingInjured) {
+      // Modo selección: marcar esta jugadora como lesionada
+      updateMatchState((currentState) => ({
+        ...currentState,
+        roster: {
+          ...currentState.roster,
+          local: currentState.roster.local.map((p) =>
+            p.id === player.id ? { ...p, injured: true } : p,
+          ),
+        },
+      }));
+      setSelectingInjured(false);
+      setInjuredPlayerModal({ player: { ...player, injured: true } });
+    } else if (player.injured) {
+      // Lesionada ya marcada: abrir modal de suplentes
+      setInjuredPlayerModal({ player });
+    }
+  };
+
+  const handleInitiateInjury = () => {
+    setSelectingInjured(!selectingInjured);
+    setInjuredPlayerModal(null);
+  };
+
+  const handleYellowCardClick = (player) => {
+    updateMatchState((currentState) => {
+      // Buscar jugadora en local
+      const playerIndex = currentState.roster.local.findIndex((p) => p.id === player.id);
+      let updatedPlayer = null;
+      let updatedRoster = { ...currentState.roster };
+      let eventLabel = '';
+
+      if (playerIndex !== -1) {
+        // En campo
+        updatedPlayer = { ...currentState.roster.local[playerIndex] };
+        updatedPlayer.yellowCards = (updatedPlayer.yellowCards || 0) + 1;
+
+        // Si es segunda amarilla, expulsa
+        if (updatedPlayer.yellowCards >= 2) {
+          updatedPlayer.injured = true;
+          const nextLocal = currentState.roster.local.filter((p) => p.id !== player.id);
+          updatedRoster = {
+            ...currentState.roster,
+            local: nextLocal,
+            bench: [...currentState.roster.bench, updatedPlayer],
+          };
+          eventLabel = `${updatedPlayer.name} recibe segunda tarjeta amarilla y es expulsado`;
+        } else {
+          // Primera amarilla
+          const nextLocal = currentState.roster.local.map((p) =>
+            p.id === player.id ? updatedPlayer : p,
+          );
+          updatedRoster = {
+            ...currentState.roster,
+            local: nextLocal,
+          };
+          eventLabel = `${updatedPlayer.name} recibe tarjeta amarilla`;
+        }
+      } else {
+        // En banquillo
+        const benchIndex = currentState.roster.bench.findIndex((p) => p.id === player.id);
+        if (benchIndex !== -1) {
+          updatedPlayer = { ...currentState.roster.bench[benchIndex] };
+          updatedPlayer.yellowCards = (updatedPlayer.yellowCards || 0) + 1;
+
+          const nextBench = currentState.roster.bench.map((p) =>
+            p.id === player.id ? updatedPlayer : p,
+          );
+          updatedRoster = {
+            ...currentState.roster,
+            bench: nextBench,
+          };
+          eventLabel = `${updatedPlayer.name} recibe tarjeta amarilla`;
+        }
+      }
+
+      return {
+        ...currentState,
+        roster: updatedRoster,
+        events: [...currentState.events, buildEvent('yellow_card', eventLabel, 'neutral')],
+      };
+    });
+
+    setYellowCardModal(false);
+  };
+
+  const handleInitiateYellowCard = () => {
+    setYellowCardModal(true);
+  };
+
   return (
     <main className="app-shell">
       <MatchHeader
@@ -289,6 +436,8 @@ function App() {
           teams={matchState.teams}
           roster={matchState.roster}
           ball={matchState.ball}
+          onPlayerClick={handlePlayerClick}
+          selectingInjured={selectingInjured}
         />
       </div>
 
@@ -304,6 +453,9 @@ function App() {
           onCard={handleCard}
           onSubstitution={handleSubstitution}
           onManualScoreChange={handleManualScoreChange}
+          selectingInjured={selectingInjured}
+          onInitiateInjury={handleInitiateInjury}
+          onInitiateYellowCard={handleInitiateYellowCard}
         />
 
         <MatchEvents events={matchState.events} />
@@ -319,6 +471,23 @@ function App() {
           onMovePlayer={handleMovePlayer}
         />
       </div>
+
+      {injuredPlayerModal && (
+        <SubstitutionModal
+          injuredPlayer={injuredPlayerModal.player}
+          benchPlayers={matchState.roster.bench}
+          onSubstitute={handleInjurySubstitution}
+          onCancel={() => setInjuredPlayerModal(null)}
+        />
+      )}
+
+      {yellowCardModal && (
+        <YellowCardModal
+          allPlayers={[...matchState.roster.local, ...matchState.roster.bench]}
+          onSelectPlayer={handleYellowCardClick}
+          onCancel={() => setYellowCardModal(false)}
+        />
+      )}
     </main>
   );
 }
