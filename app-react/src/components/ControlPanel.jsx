@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 export default function ControlPanel({
   isRunning,
   localScore,
@@ -7,13 +9,21 @@ export default function ControlPanel({
   onGoal,
   onAssist,
   onCard,
+  onToggleRoster,
+  onOpenCalendar,
+  onFinalize,
+  onOpenHistory,
+  onOpenTacticsBoard,
   onSubstitution,
   onManualScoreChange,
   selectingInjured,
   onInitiateInjury,
   onInitiateYellowCard,
+  onPlaceVisitorTeam,
+  onRemoveVisitorTeam,
 }) {
   const buttonBaseClass = 'action-button';
+  const [visitorActionsOpen, setVisitorActionsOpen] = useState(false);
 
   return (
     <section className="controls-panel" aria-label="Panel de control del partido">
@@ -27,69 +37,50 @@ export default function ControlPanel({
       </div>
 
       <div className="control-row">
-        <button type="button" className={buttonBaseClass} onClick={() => onGoal('local')}>
-          ⚽ Gol local
+        <button type="button" className={buttonBaseClass} onClick={onToggleRoster}>
+          📋 Plantilla
         </button>
-        <button type="button" className={buttonBaseClass} onClick={() => onGoal('visitor')}>
-          ⚽ Gol visitante
-        </button>
-      </div>
-
-      <div className="control-row">
-        <button type="button" className={buttonBaseClass} onClick={() => onAssist('local')}>
-          🅰️ Asistencia local
-        </button>
-        <button type="button" className={buttonBaseClass} onClick={() => onAssist('visitor')}>
-          🅰️ Asistencia visitante
+        <button type="button" className={buttonBaseClass} onClick={onOpenTacticsBoard}>
+          🧠 Pizarra
         </button>
       </div>
 
       <div className="control-row">
-        <button type="button" className={buttonBaseClass} onClick={() => onCard('local', 'yellow')}>
-          🟨 Amarilla local
-        </button>
-        <button type="button" className={buttonBaseClass} onClick={() => onCard('visitor', 'yellow')}>
-          🟨 Amarilla visitante
+        <button type="button" className={buttonBaseClass} onClick={onOpenCalendar}>
+          📅 Calendario
         </button>
       </div>
 
       <div className="control-row">
-        <button type="button" className={buttonBaseClass} onClick={() => onCard('local', 'red')}>
-          🟥 Roja local
+        <button type="button" className={buttonBaseClass} onClick={onFinalize}>
+          🏁 Finalizar partido
         </button>
-        <button type="button" className={buttonBaseClass} onClick={() => onCard('visitor', 'red')}>
-          🟥 Roja visitante
-        </button>
-      </div>
-
-      <div className="control-row">
-        <button type="button" className={buttonBaseClass} onClick={() => onSubstitution('local')}>
-          🔄 Cambio local
-        </button>
-        <button type="button" className={buttonBaseClass} onClick={() => onSubstitution('visitor')}>
-          🔄 Cambio visitante
+        <button type="button" className={buttonBaseClass} onClick={onOpenHistory}>
+          📚 Historial
         </button>
       </div>
 
-      <div className="control-row">
-        <button
-          type="button"
-          className={`${buttonBaseClass} ${selectingInjured ? 'active-mode' : ''}`}
-          onClick={onInitiateInjury}
-        >
-          {selectingInjured ? '🩹 Selecciona lesionada...' : '🩹 Marcar lesión'}
-        </button>
-      </div>
+      <button
+        type="button"
+        className="visitor-actions-toggle"
+        onClick={() => setVisitorActionsOpen((isOpen) => !isOpen)}
+        aria-expanded={visitorActionsOpen}
+      >
+        <span>⚽ Acciones visitante</span>
+        <span>{visitorActionsOpen ? '▴' : '▾'}</span>
+      </button>
 
-      <div className="control-row">
-        <button
-          type="button"
-          className={buttonBaseClass}
-          onClick={onInitiateYellowCard}
-        >
-          🟨 Tarjeta amarilla
-        </button>
-      </div>
+      {visitorActionsOpen && (
+        <div className="visitor-actions-panel">
+          <button type="button" className={buttonBaseClass} onClick={() => onGoal('visitor')}>⚽ Gol visitante</button>
+          <button type="button" className={buttonBaseClass} onClick={() => onAssist('visitor')}>🅰️ Asistencia visitante</button>
+          <button type="button" className={buttonBaseClass} onClick={() => onCard('visitor', 'yellow')}>🟨 Amarilla visitante</button>
+          <button type="button" className={buttonBaseClass} onClick={() => onCard('visitor', 'red')}>🟥 Roja visitante</button>
+          <button type="button" className={buttonBaseClass} onClick={() => onSubstitution('visitor')}>🔄 Cambio visitante</button>
+          <button type="button" className={buttonBaseClass} onClick={onPlaceVisitorTeam}>🧍 Colocar equipo visitante</button>
+          <button type="button" className={buttonBaseClass} onClick={onRemoveVisitorTeam}>🚫 Retirar equipo visitante</button>
+        </div>
+      )}
 
       <div className="manual-scores">
         <label>

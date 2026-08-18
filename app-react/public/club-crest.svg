@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 190" role="img" aria-labelledby="title desc">
+  <title id="title">Escudo del C.F. Navarcles</title>
+  <desc id="desc">Escudo azul y amarillo con edificio, balón y franjas rojas</desc>
+  <defs>
+    <clipPath id="shieldClip">
+      <path d="M10 10h140v94c0 36-26 62-70 78-44-16-70-42-70-78z"/>
+    </clipPath>
+  </defs>
+  <path d="M10 10h140v94c0 36-26 62-70 78-44-16-70-42-70-78z" fill="#ffd91a" stroke="#172554" stroke-width="7"/>
+  <path d="M10 10h140v76H10z" fill="#2864b8" clip-path="url(#shieldClip)"/>
+  <g fill="#ffe34d" stroke="#172554" stroke-width="3">
+    <path d="M55 59V36h10V25h30v11h10v23"/>
+    <path d="M49 59h62v10H49z"/>
+    <path d="M59 42h8v14h-8zm14 0h8v14h-8zm14 0h8v14h-8z" fill="#172554"/>
+  </g>
+  <path d="M10 101h140v12c0 25-19 48-70 69-51-21-70-44-70-69z" fill="#ed1c24" clip-path="url(#shieldClip)"/>
+  <path d="M42 90L17 176M78 90l-4 91M114 90l25 86" stroke="#ffd91a" stroke-width="17" clip-path="url(#shieldClip)"/>
+  <path d="M10 10h140v94c0 36-26 62-70 78-44-16-70-42-70-78z" fill="none" stroke="#172554" stroke-width="7"/>
+  <path d="M18 91h124" stroke="#f8fafc" stroke-width="15" transform="rotate(-13 80 91)"/>
+  <text x="80" y="96" fill="#172554" font-family="Arial, sans-serif" font-size="13" font-weight="900" text-anchor="middle" transform="rotate(-13 80 96)">C.F. NAVARCLES</text>
+  <circle cx="46" cy="108" r="18" fill="#754c24" stroke="#172554" stroke-width="4"/>
+  <path d="M46 90v36M29 108h34M34 96l24 24M58 96l-24 24" stroke="#172554" stroke-width="2"/>
+</svg>

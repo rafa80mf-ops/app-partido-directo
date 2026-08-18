@@ -12,7 +12,23 @@ function getEventEmoji(type) {
   return mapping[type] || '📌';
 }
 
-export default function MatchEvents({ events }) {
+export default function MatchEvents({ events, onStartNewMatch }) {
+  const canStartNewMatch = events.some((event) => event.label.includes('Listo para iniciar uno nuevo'));
+
+  const getActionLabel = (event) => {
+    if (!event.players?.length) return event.label;
+
+    let actionLabel = event.label;
+    event.players.forEach((player, index) => {
+      const playerLabel = event.team === 'visitor' ? `#${player.number}` : player.name;
+      actionLabel = actionLabel.replace(index === 0 ? `${playerLabel} ` : ` ${playerLabel}`, '');
+    });
+    if (event.team !== 'visitor') {
+      actionLabel = actionLabel.replace(/\(#\d+\)\s*/, '');
+    }
+    return actionLabel;
+  };
+
   return (
     <section className="events-panel" aria-label="Eventos del partido">
       <h2>Eventos</h2>
@@ -25,7 +41,17 @@ export default function MatchEvents({ events }) {
             <li key={event.id} className="event-item">
               <span className="event-emoji">{getEventEmoji(event.type)}</span>
               <div>
-                <strong>{event.label}</strong>
+                {event.players?.length > 0 && (
+                  <div className="event-player-list">
+                    {event.players.map((player) => (
+                      <span key={`${player.number}-${player.name}`} className={`event-player ${event.team === 'visitor' ? 'visitor' : 'local'}`}>
+                        <span className="event-player-number">{player.number}</span>
+                        {event.team !== 'visitor' && <span className="event-player-name">{player.name}</span>}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <strong>{getActionLabel(event)}</strong>
                 <small>
                   {event.team === 'local' && 'Local'}
                   {event.team === 'visitor' && 'Visitante'}
@@ -35,6 +61,14 @@ export default function MatchEvents({ events }) {
             </li>
           ))}
         </ul>
+      )}
+
+      {canStartNewMatch && (
+        <div className="event-start-new">
+          <button type="button" className="primary-button start-new-match-button" onClick={onStartNewMatch}>
+            🏁 Iniciar nuevo partido
+          </button>
+        </div>
       )}
     </section>
   );

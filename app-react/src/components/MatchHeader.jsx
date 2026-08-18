@@ -7,17 +7,26 @@ function formatClock(totalSeconds) {
   return `${minutes}:${seconds}`;
 }
 
-export default function MatchHeader({ teams, scores, elapsedSeconds, onTeamNameChange }) {
+export default function MatchHeader({ teams, scores, elapsedSeconds, clubSide, clubCrest, showTeams }) {
+
   return (
     <header className="match-header">
-      <div className="team-block">
-        <label htmlFor="team-local" className="sr-only">Equipo local</label>
-        <input
-          id="team-local"
-          value={teams.local}
-          onChange={(event) => onTeamNameChange('local', event.target.value)}
-          aria-label="Nombre del equipo local"
-        />
+      <div className="team-block club-team">
+        {showTeams ? (
+          <div className="match-team-name">
+            {clubSide === 'local' && <img className="club-crest" src={clubCrest} alt="Escudo del club" />}
+            <div>
+              <span>Local</span>
+              <strong>{teams.local}</strong>
+            </div>
+          </div>
+        ) : clubSide === 'local' ? (
+          <div className="club-identity">
+            <img className="club-crest" src={clubCrest} alt="Escudo del club" />
+          </div>
+        ) : (
+          <div aria-hidden="true" />
+        )}
       </div>
 
       <div className="score-block" aria-live="polite">
@@ -30,14 +39,22 @@ export default function MatchHeader({ teams, scores, elapsedSeconds, onTeamNameC
         {formatClock(elapsedSeconds)}
       </div>
 
-      <div className="team-block">
-        <label htmlFor="team-visitor" className="sr-only">Equipo visitante</label>
-        <input
-          id="team-visitor"
-          value={teams.visitor}
-          onChange={(event) => onTeamNameChange('visitor', event.target.value)}
-          aria-label="Nombre del equipo visitante"
-        />
+      <div className="team-block club-team">
+        {showTeams ? (
+          <div className="match-team-name match-team-visitor">
+            <div>
+              <span>Visitante</span>
+              <strong>{teams.visitor}</strong>
+            </div>
+            {clubSide === 'visitor' && <img className="club-crest" src={clubCrest} alt="Escudo del club" />}
+          </div>
+        ) : clubSide === 'visitor' ? (
+          <div className="club-identity">
+            <img className="club-crest" src={clubCrest} alt="Escudo del club" />
+          </div>
+        ) : (
+          <div aria-hidden="true" />
+        )}
       </div>
     </header>
   );
