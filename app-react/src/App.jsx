@@ -3,7 +3,7 @@ import './App.css';
 import MatchHeader from './components/MatchHeader';
 import ControlPanel from './components/ControlPanel';
 import MatchEvents from './components/MatchEvents';
-import PitchField from './components/PitchField';
+import PitchField, { FORMATION_POSITIONS } from './components/PitchField';
 import RosterPanel from './components/RosterPanel';
 import SubstitutionModal from './components/SubstitutionModal';
 import YellowCardModal from './components/YellowCardModal';
@@ -194,7 +194,11 @@ function App() {
     const totalGoals = matchState.scores.local + matchState.scores.visitor;
     return {
       totalGoals,
-      status: matchState.isRunning ? 'En directo' : 'Parado',
+      status: matchState.isRunning
+        ? 'En directo'
+        : matchState.elapsedSeconds > 0
+          ? 'Pausado'
+          : 'Parado',
     };
   }, [matchState]);
 
@@ -246,6 +250,30 @@ function App() {
         ...currentState.events,
       ].slice(0, 25),
     }));
+  };
+
+  const handleOpenStartMatch = () => {
+    setStartMatchOpen(false);
+    setStartMatchMode('default');
+    setCalendarOpen(true);
+    setActiveSection('calendar');
+  };
+
+  const handlePause = () => {
+    updateMatchState((currentState) => {
+      if (!currentState.isRunning) {
+        return currentState;
+      }
+
+      return {
+        ...currentState,
+        isRunning: false,
+        events: [
+          buildEvent('info', 'Partido pausado'),
+          ...currentState.events,
+        ].slice(0, 25),
+      };
+    });
   };
 
   const handleCreateInstantMatch = ({ local, visitor, clubSide }) => {
@@ -393,6 +421,7 @@ function App() {
       events: [buildEvent('info', `${match.local} - ${match.visitor} seleccionado del calendario`)],
     }));
     setCalendarOpen(false);
+    setActiveSection('live');
     setStartMatchOpen(false);
     setLineupSelectionOpen(true);
     setHalfTimeNoticeShown(false);
@@ -459,9 +488,10 @@ function App() {
     setActiveCalendarMatchId(null);
     setEditingHistoryId(null);
     setLineupSelectionOpen(false);
-    setStartMatchMode('fresh');
-    setStartMatchOpen(true);
-    setFullTimeNoticeShown(true);
+    setStartMatchMode('default');
+    setStartMatchOpen(false);
+    setHalfTimeNoticeShown(false);
+    setFullTimeNoticeShown(false);
     setFinalizeConfirmOpen(false);
   };
 
@@ -542,6 +572,34 @@ function App() {
       };
     });
     setLineupSelectionOpen(false);
+  };
+
+  const handleApplyFormation = (formation, side = 'local') => {
+    const positions = FORMATION_POSITIONS[formation];
+    if (!positions) return;
+
+    updateMatchState((currentState) => ({
+      ...currentState,
+      roster: {
+        ...currentState.roster,
+        local: side === 'local'
+          ? currentState.roster.local.map((player, index) => ({
+              ...player,
+              ...(positions[index] || {}),
+            }))
+          : currentState.roster.local,
+        visitor: side === 'visitor'
+          ? currentState.roster.visitor.map((player, index) => ({
+              ...player,
+              ...(positions[index] ? { x: 100 - positions[index].x, y: positions[index].y } : {}),
+            }))
+          : currentState.roster.visitor,
+      },
+      events: [
+        buildEvent('tactics', `Formación ${formation} aplicada al ${side === 'local' ? 'equipo local' : 'visitante'}`),
+        ...currentState.events,
+      ].slice(0, 25),
+    }));
   };
 
   const handleGoal = (team) => {
@@ -1222,6 +1280,25 @@ function App() {
               </div>
 
               <div className="pitch-section">
+                <ControlPanel
+                  isRunning={matchState.isRunning}
+                  elapsedSeconds={matchState.elapsedSeconds}
+                  lineupConfirmed={matchState.lineupConfirmed}
+                  onStartMatch={handleOpenStartMatch}
+                  onToggleRunning={handleToggleRunning}
+                  onPause={handlePause}
+                  onReset={handleReset}
+                  onGoal={handleGoal}
+                  onAssist={handleAssist}
+                  onCard={handleCard}
+                  onFinalize={handleFinalize}
+                  onSubstitution={handleSubstitution}
+                  selectingInjured={selectingInjured}
+                  onInitiateInjury={handleInitiateInjury}
+                  onInitiateYellowCard={handleInitiateYellowCard}
+                  onPlaceVisitorTeam={handlePlaceVisitorTeam}
+                  onRemoveVisitorTeam={handleRemoveVisitorTeam}
+                />
                 <PitchField
                   teams={matchState.teams}
                   clubSide={matchState.clubSide}
@@ -1229,35 +1306,13 @@ function App() {
                   ball={matchState.ball}
                   onPlayerClick={handlePlayerClick}
                   onPlayerMove={handlePlayerMove}
+                  onApplyFormation={handleApplyFormation}
                   selectingInjured={selectingInjured}
                   showPlayerNames={Boolean(activeCalendarMatchId)}
                 />
               </div>
 
               <div className="content-grid">
-                <ControlPanel
-                  isRunning={matchState.isRunning}
-                  localScore={matchState.scores.local}
-                  visitorScore={matchState.scores.visitor}
-                  onToggleRunning={handleToggleRunning}
-                  onReset={handleReset}
-                  onGoal={handleGoal}
-                  onAssist={handleAssist}
-                  onCard={handleCard}
-                  onToggleRoster={() => setActiveSection('team')}
-                  onOpenCalendar={() => setActiveSection('calendar')}
-                  onFinalize={handleFinalize}
-                  onOpenHistory={() => setActiveSection('history')}
-                  onOpenTacticsBoard={() => setActiveSection('tactics')}
-                  onSubstitution={handleSubstitution}
-                  onManualScoreChange={handleManualScoreChange}
-                  selectingInjured={selectingInjured}
-                  onInitiateInjury={handleInitiateInjury}
-                  onInitiateYellowCard={handleInitiateYellowCard}
-                  onPlaceVisitorTeam={handlePlaceVisitorTeam}
-                  onRemoveVisitorTeam={handleRemoveVisitorTeam}
-                />
-
                 <MatchEvents
                   events={matchState.events}
                   onStartNewMatch={() => {
@@ -1329,6 +1384,7 @@ function App() {
             setActiveSection('live');
           }}
           onMovePlayer={handleTacticsBoardMove}
+          onApplyFormation={handleApplyFormation}
         />
       )}
 

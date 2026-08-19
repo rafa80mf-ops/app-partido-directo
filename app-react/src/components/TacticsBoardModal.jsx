@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { FORMATION_POSITIONS } from './PitchField';
 
 const DEFAULT_POSITIONS = [
   { x: 10, y: 50 },
@@ -43,6 +44,7 @@ export default function TacticsBoardModal({
   roster,
   onClose,
   onMovePlayer,
+  onApplyFormation,
 }) {
   const dragRef = useRef(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState(null);
@@ -50,6 +52,7 @@ export default function TacticsBoardModal({
   const [tacticalPositions, setTacticalPositions] = useState({});
   const [visitorTacticalPlayerIds, setVisitorTacticalPlayerIds] = useState([]);
   const [visitorTacticalPositions, setVisitorTacticalPositions] = useState({});
+  const [formationOpen, setFormationOpen] = useState(false);
 
   const squadPlayers = useMemo(() => {
     const players = [...(roster?.local || []), ...(roster?.bench || [])];
@@ -185,18 +188,39 @@ export default function TacticsBoardModal({
     ));
   };
 
-  const applyFormation = (side, playerCount) => {
+  const applyFormation = (side, formation) => {
     const players = side === 'visitor' ? visitorSquadPlayers : squadPlayers;
     const setIds = side === 'visitor' ? setVisitorTacticalPlayerIds : setTacticalPlayerIds;
     const setPositions = side === 'visitor' ? setVisitorTacticalPositions : setTacticalPositions;
+    const formationPositions = FORMATION_POSITIONS[formation];
+    if (!formationPositions) return;
     const goalkeeper = players.find((player) => player.role === 'POR');
     const selectedPlayers = goalkeeper
-      ? [goalkeeper, ...players.filter((player) => player.id !== goalkeeper.id)].slice(0, playerCount)
-      : players.slice(0, playerCount);
+      ? [goalkeeper, ...players.filter((player) => player.id !== goalkeeper.id)].slice(0, formationPositions.length)
+      : players.slice(0, formationPositions.length);
 
     setIds(selectedPlayers.map((player) => player.id));
-    setPositions({});
+    setPositions(Object.fromEntries(selectedPlayers.map((player, index) => [
+      player.id,
+      side === 'visitor'
+        ? { x: 100 - formationPositions[index].x, y: formationPositions[index].y }
+        : formationPositions[index],
+    ])));
+      onApplyFormation?.(formation, side);
   };
+
+    const applyPlayerCount = (side, playerCount) => {
+      const players = side === 'visitor' ? visitorSquadPlayers : squadPlayers;
+      const setIds = side === 'visitor' ? setVisitorTacticalPlayerIds : setTacticalPlayerIds;
+      const setPositions = side === 'visitor' ? setVisitorTacticalPositions : setTacticalPositions;
+      const goalkeeper = players.find((player) => player.role === 'POR');
+      const selectedPlayers = goalkeeper
+        ? [goalkeeper, ...players.filter((player) => player.id !== goalkeeper.id)].slice(0, playerCount)
+        : players.slice(0, playerCount);
+
+      setIds(selectedPlayers.map((player) => player.id));
+      setPositions({});
+    };
 
   return (
     <div className="modal-overlay tactics-board-overlay" onClick={onClose}>
@@ -271,8 +295,14 @@ export default function TacticsBoardModal({
               })}
               </div>
               <div className="tactics-formation-actions">
-                <button type="button" onClick={() => applyFormation('local', 11)}>F11</button>
-                <button type="button" onClick={() => applyFormation('local', 7)}>F7</button>
+                <button type="button" onClick={() => applyPlayerCount('local', 7)}>F7</button>
+                <button type="button" onClick={() => applyPlayerCount('local', 11)}>F11</button>
+                <button type="button" onClick={() => setFormationOpen((isOpen) => !isOpen)} aria-expanded={formationOpen}>
+                  Formación {formationOpen ? '▴' : '▾'}
+                </button>
+                {formationOpen && Object.keys(FORMATION_POSITIONS).map((formation) => (
+                  <button type="button" key={formation} onClick={() => applyFormation('local', formation)}>{formation}</button>
+                ))}
               </div>
             </aside>
             <aside className="tactics-squad-picker visitor-picker" aria-label="Once táctico visitante">
@@ -298,8 +328,14 @@ export default function TacticsBoardModal({
                 })}
               </div>
               <div className="tactics-formation-actions">
-                <button type="button" onClick={() => applyFormation('visitor', 11)}>F11</button>
-                <button type="button" onClick={() => applyFormation('visitor', 7)}>F7</button>
+                <button type="button" onClick={() => applyPlayerCount('visitor', 7)}>F7</button>
+                <button type="button" onClick={() => applyPlayerCount('visitor', 11)}>F11</button>
+                <button type="button" onClick={() => setFormationOpen((isOpen) => !isOpen)} aria-expanded={formationOpen}>
+                  Formación {formationOpen ? '▴' : '▾'}
+                </button>
+                {formationOpen && Object.keys(FORMATION_POSITIONS).map((formation) => (
+                  <button type="button" key={formation} onClick={() => applyFormation('visitor', formation)}>{formation}</button>
+                ))}
               </div>
             </aside>
           </div>

@@ -1,4 +1,33 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
+
+export const FORMATION_POSITIONS = {
+  '4-4-2': [
+    { x: 10, y: 50 }, { x: 23, y: 20 }, { x: 23, y: 40 }, { x: 23, y: 60 }, { x: 23, y: 80 },
+    { x: 48, y: 25 }, { x: 48, y: 42 }, { x: 48, y: 58 }, { x: 48, y: 75 },
+    { x: 72, y: 38 }, { x: 72, y: 62 },
+  ],
+  '4-3-3': [
+    { x: 10, y: 50 }, { x: 23, y: 20 }, { x: 23, y: 40 }, { x: 23, y: 60 }, { x: 23, y: 80 },
+    { x: 48, y: 28 }, { x: 48, y: 50 }, { x: 48, y: 72 },
+    { x: 73, y: 25 }, { x: 75, y: 50 }, { x: 73, y: 75 },
+  ],
+  '3-5-2': [
+    { x: 10, y: 50 }, { x: 23, y: 28 }, { x: 23, y: 50 }, { x: 23, y: 72 },
+    { x: 48, y: 15 }, { x: 48, y: 34 }, { x: 48, y: 50 }, { x: 48, y: 66 }, { x: 48, y: 85 },
+    { x: 73, y: 38 }, { x: 73, y: 62 },
+  ],
+  '4-2-3-1': [
+    { x: 10, y: 50 }, { x: 23, y: 20 }, { x: 23, y: 40 }, { x: 23, y: 60 }, { x: 23, y: 80 },
+    { x: 45, y: 38 }, { x: 45, y: 62 }, { x: 67, y: 25 }, { x: 67, y: 50 }, { x: 67, y: 75 },
+    { x: 82, y: 50 },
+  ],
+  '5-3-2': [
+    { x: 10, y: 50 }, { x: 23, y: 12 }, { x: 23, y: 31 }, { x: 23, y: 50 }, { x: 23, y: 69 }, { x: 23, y: 88 },
+    { x: 50, y: 30 }, { x: 50, y: 50 }, { x: 50, y: 70 }, { x: 74, y: 38 }, { x: 74, y: 62 },
+  ],
+};
+
+const FORMATION_NAMES = Object.keys(FORMATION_POSITIONS);
 
 function sortBenchPlayers(firstPlayer, secondPlayer) {
   const firstHasName = Boolean(firstPlayer.name?.trim()) && !/^Suplente\s+\d+$/i.test(firstPlayer.name.trim());
@@ -11,8 +40,11 @@ function sortBenchPlayers(firstPlayer, secondPlayer) {
   return firstPlayer.number - secondPlayer.number;
 }
 
-export default function PitchField({ teams, clubSide, roster, ball, onPlayerClick, onPlayerMove, selectingInjured, showPlayerNames }) {
+export default function PitchField({ teams, clubSide, roster, ball, onPlayerClick, onPlayerMove, onApplyFormation, selectingInjured, showPlayerNames }) {
   const dragRef = useRef(null);
+  const [benchTab, setBenchTab] = useState('team');
+  const [formationSide, setFormationSide] = useState('local');
+
   const localPlayers = roster?.local ?? [];
   const visitorPlayers = roster?.visitor ?? [];
 
@@ -82,12 +114,6 @@ export default function PitchField({ teams, clubSide, roster, ball, onPlayerClic
 
   return (
     <section className="pitch-wrapper" aria-label="Campo del partido">
-      <div className="stadium-stand stand-top" aria-hidden="true">
-        <div className="stand-row stand-row-back">● ● ● ●  ● ● ● ●  ● ● ● ●  ● ● ● ●</div>
-        <div className="stand-row stand-row-middle">● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ● ●</div>
-        <div className="stand-row stand-row-front">● ● ● ●  ● ● ● ●  ● ● ● ●  ● ● ● ●</div>
-        <div className="stand-rail" />
-      </div>
       <div className="pitch-canvas">
         {/* Áreas y portería */}
         <div className="area-large-left" />
@@ -125,7 +151,16 @@ export default function PitchField({ teams, clubSide, roster, ball, onPlayerClic
       </div>
 
       <div className="bench-section" aria-label="Banquillos">
-        {[
+        <div className="bench-tabs" role="tablist" aria-label="Equipo y formación">
+          <button type="button" className={benchTab === 'team' ? 'active' : ''} onClick={() => setBenchTab('team')} role="tab" aria-selected={benchTab === 'team'}>
+            Equipo
+          </button>
+          <button type="button" className={benchTab === 'formation' ? 'active' : ''} onClick={() => setBenchTab('formation')} role="tab" aria-selected={benchTab === 'formation'}>
+            Formación
+          </button>
+        </div>
+
+        {benchTab === 'team' && [
           ['local', clubSide === 'visitor' ? teams?.visitor : teams?.local],
           ...(visitorPlayers.length > 0
             ? [['visitor', clubSide === 'visitor' ? teams?.local : teams?.visitor]]
@@ -148,7 +183,7 @@ export default function PitchField({ teams, clubSide, roster, ball, onPlayerClic
                   tabIndex={selectingInjured ? 0 : -1}
                 >
                   <span className="player-number">{player.number}</span>
-                  {team === 'local' && <span className="player-name">{player.name}</span>}
+                  <span className="bench-player-name">{player.name}</span>
                   {player.injured && <span className="injury-icon">🩹</span>}
                   {player.redCards > 0 && <span className="red-card">🟥</span>}
                   {player.yellowCards > 0 && !player.redCards && (
@@ -159,6 +194,37 @@ export default function PitchField({ teams, clubSide, roster, ball, onPlayerClic
             </div>
           </div>
         ))}
+
+        {benchTab === 'formation' && (
+          <div className="formation-picker">
+            <div className="formation-side-tabs" role="tablist" aria-label="Equipo para la formación">
+              <button type="button" className={formationSide === 'local' ? 'active' : ''} onClick={() => setFormationSide('local')}>
+                Mi equipo
+              </button>
+              <button type="button" className={formationSide === 'visitor' ? 'active' : ''} onClick={() => setFormationSide('visitor')}>
+                Visitante
+              </button>
+            </div>
+            <p>Elige una formación</p>
+            <div className="formation-options">
+              {FORMATION_NAMES.map((formation) => (
+                <button
+                  type="button"
+                  className="formation-option"
+                  key={formation}
+                  onClick={() => onApplyFormation?.(formation, formationSide)}
+                >
+                  <span className="formation-mini-pitch">
+                    {FORMATION_POSITIONS[formation].map((position, index) => (
+                      <i key={`${formation}-${index}`} style={{ left: `${position.x}%`, top: `${position.y}%` }} />
+                    ))}
+                  </span>
+                  <strong>{formation}</strong>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

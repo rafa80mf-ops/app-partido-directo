@@ -7,54 +7,40 @@ function formatClock(totalSeconds) {
   return `${minutes}:${seconds}`;
 }
 
-export default function MatchHeader({ teams, scores, elapsedSeconds, clubSide, clubCrest, showTeams }) {
+export default function MatchHeader({ teams, scores, elapsedSeconds, clubSide, clubCrest }) {
 
   return (
     <header className="match-header">
-      <div className="team-block club-team">
-        {showTeams ? (
-          <div className="match-team-name">
-            {clubSide === 'local' && <img className="club-crest" src={clubCrest} alt="Escudo del club" />}
-            <div>
-              <span>Local</span>
-              <strong>{teams.local}</strong>
-            </div>
+      <div className="team-block local-team">
+        <div className="match-team-name">
+          {clubSide === 'local' && <img className="club-crest" src={clubCrest} alt="Escudo del club" />}
+          <div>
+            <span>Local</span>
+            <strong>{teams.local}</strong>
           </div>
-        ) : clubSide === 'local' ? (
-          <div className="club-identity">
-            <img className="club-crest" src={clubCrest} alt="Escudo del club" />
-          </div>
-        ) : (
-          <div aria-hidden="true" />
-        )}
+        </div>
       </div>
 
-      <div className="score-block" aria-live="polite">
-        <span className="score-value">{scores.local}</span>
-        <span className="score-divider">:</span>
-        <span className="score-value">{scores.visitor}</span>
+      <div className="match-score-center">
+        <div className="score-block" aria-live="polite">
+          <span className="score-value">{scores.local}</span>
+          <span className="score-divider">:</span>
+          <span className="score-value">{scores.visitor}</span>
+        </div>
+        <div className="clock-block" aria-live="polite">
+          <span className="clock-label">TIEMPO</span>
+          {formatClock(elapsedSeconds)}
+        </div>
       </div>
 
-      <div className="clock-block" aria-live="polite">
-        {formatClock(elapsedSeconds)}
-      </div>
-
-      <div className="team-block club-team">
-        {showTeams ? (
-          <div className="match-team-name match-team-visitor">
-            <div>
-              <span>Visitante</span>
-              <strong>{teams.visitor}</strong>
-            </div>
-            {clubSide === 'visitor' && <img className="club-crest" src={clubCrest} alt="Escudo del club" />}
+      <div className="team-block visitor-team">
+        <div className="match-team-name match-team-visitor">
+          <div>
+            <span>Visitante</span>
+            <strong>{teams.visitor}</strong>
           </div>
-        ) : clubSide === 'visitor' ? (
-          <div className="club-identity">
-            <img className="club-crest" src={clubCrest} alt="Escudo del club" />
-          </div>
-        ) : (
-          <div aria-hidden="true" />
-        )}
+          {clubSide === 'visitor' && <img className="club-crest" src={clubCrest} alt="Escudo del club" />}
+        </div>
       </div>
     </header>
   );
