@@ -12,7 +12,7 @@ function getEventEmoji(type) {
   return mapping[type] || '📌';
 }
 
-export default function MatchEvents({ events, onStartNewMatch }) {
+export default function MatchEvents({ events, onStartNewMatch, teamAppearance }) {
   const canStartNewMatch = events.some((event) => event.label.includes('Listo para iniciar uno nuevo'));
 
   const getActionLabel = (event) => {
@@ -20,7 +20,7 @@ export default function MatchEvents({ events, onStartNewMatch }) {
 
     let actionLabel = event.label;
     event.players.forEach((player, index) => {
-      const playerLabel = event.team === 'visitor' ? `#${player.number}` : player.name;
+      const playerLabel = event.team === 'visitor' ? `${player.number}` : player.name;
       actionLabel = actionLabel.replace(index === 0 ? `${playerLabel} ` : ` ${playerLabel}`, '');
     });
     if (event.team !== 'visitor') {
@@ -39,13 +39,13 @@ export default function MatchEvents({ events, onStartNewMatch }) {
         <ul className="event-list">
           {events.map((event) => (
             <li key={event.id} className="event-item">
-              <span className="event-emoji">{getEventEmoji(event.type)}</span>
+              <span className={`event-emoji ${event.team === 'local' ? 'local-event-emoji' : event.team === 'visitor' ? 'visitor-event-emoji' : ''} ${event.team === 'local' && teamAppearance?.shape === 'shirt' ? 'appearance-shirt' : ''}`} style={event.team === 'local' ? { '--team-color': teamAppearance?.color || '#facc15', '--team-color-secondary': teamAppearance?.secondaryColor || '#111827' } : undefined}>{getEventEmoji(event.type)}</span>
               <div>
                 {event.players?.length > 0 && (
                   <div className="event-player-list">
                     {event.players.map((player) => (
-                      <span key={`${player.number}-${player.name}`} className={`event-player ${event.team === 'visitor' ? 'visitor' : 'local'}`}>
-                        <span className="event-player-number">{player.number}</span>
+                      <span key={`${player.number}-${player.name}`} className={`event-player ${event.team === 'visitor' ? 'visitor' : 'local'}`} style={event.team === 'local' ? { '--team-color': teamAppearance?.color || '#facc15', '--team-color-secondary': teamAppearance?.secondaryColor || '#111827' } : undefined}>
+                        <span className={`event-player-number ${event.team === 'local' && teamAppearance?.shape === 'shirt' ? 'appearance-shirt' : ''}`}>{player.number}</span>
                         {event.team !== 'visitor' && <span className="event-player-name">{player.name}</span>}
                       </span>
                     ))}

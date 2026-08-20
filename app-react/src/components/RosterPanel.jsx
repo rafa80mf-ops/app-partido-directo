@@ -9,7 +9,7 @@ const emptyPlayer = {
 
 function hasPlayerName(player) {
   const name = player.name?.trim() || '';
-  return Boolean(name) && !/^Suplente\s+\d+$/i.test(name);
+  return Boolean(name) && !/^(Suplente|Portera|Defensa|Media|Delantera)\s+\d+$/i.test(name);
 }
 
 function sortRosterPlayers(firstPlayer, secondPlayer) {
@@ -35,6 +35,7 @@ export default function RosterPanel({
 }) {
   const [draft, setDraft] = useState(emptyPlayer);
   const [editingId, setEditingId] = useState(null);
+  const [addFormOpen, setAddFormOpen] = useState(false);
 
   const starterPlayers = useMemo(
     () => [...roster.local].sort(sortRosterPlayers),
@@ -72,6 +73,7 @@ export default function RosterPanel({
     });
 
     setDraft(emptyPlayer);
+    setAddFormOpen(false);
   };
 
   const startEdit = (player) => {
@@ -102,12 +104,13 @@ export default function RosterPanel({
     <section className="roster-panel" aria-label="Gestión de jugadoras">
       <div className="roster-header">
         <h2>Plantilla</h2>
-        <button type="button" className="secondary-button" onClick={() => onAddPlayer('local')}>
-          + Añadir jugadora
+        <button type="button" className={`secondary-button roster-toggle-button ${addFormOpen ? 'open' : ''}`} onClick={() => setAddFormOpen((isOpen) => !isOpen)} aria-expanded={addFormOpen}>
+          {addFormOpen ? '− Ocultar plantilla' : '+ Añadir jugadora'}
         </button>
       </div>
 
-      <form className="player-form" onSubmit={handleSubmit}>
+      {addFormOpen && <>
+        <form className="player-form" onSubmit={handleSubmit}>
         <input
           type="number"
           min="1"
@@ -139,9 +142,9 @@ export default function RosterPanel({
         <button type="submit" className="primary-button">
           {editingId ? 'Guardar' : 'Crear'}
         </button>
-      </form>
+        </form>
 
-      <div className={`roster-columns ${lineupConfirmed && !managementOnly ? '' : 'roster-single-column'}`}>
+        <div className={`roster-columns ${lineupConfirmed && !managementOnly ? '' : 'roster-single-column'}`}>
         {rosterGroups.map((group) => (
           <div className="roster-group" key={group.title}>
             <h3>{group.title}</h3>
@@ -177,13 +180,14 @@ export default function RosterPanel({
             </ul>
           </div>
         ))}
-      </div>
+        </div>
 
-      {!managementOnly && (
-        <button type="button" className="primary-button" onClick={onSelectLineup}>
-          Seleccionar 11 titulares
-        </button>
-      )}
+        {!managementOnly && (
+          <button type="button" className="primary-button" onClick={onSelectLineup}>
+            Seleccionar 11 titulares
+          </button>
+        )}
+      </>}
     </section>
   );
 }

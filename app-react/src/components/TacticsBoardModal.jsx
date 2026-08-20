@@ -45,6 +45,7 @@ export default function TacticsBoardModal({
   onClose,
   onMovePlayer,
   onApplyFormation,
+  teamAppearance,
 }) {
   const dragRef = useRef(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState(null);
@@ -252,7 +253,8 @@ export default function TacticsBoardModal({
               <button
                 key={`${player.side}-${player.id}`}
                 type="button"
-                className={`tactics-player ${selectedPlayerId === player.id ? 'selected' : ''} ${player.side === 'visitor' ? 'visitor' : ''} ${player.role === 'POR' ? 'goalkeeper' : ''}`}
+                className={`tactics-player ${selectedPlayerId === player.id ? 'selected' : ''} ${player.side === 'visitor' ? 'visitor' : `appearance-${teamAppearance?.shape || 'ball'}`} ${player.role === 'POR' ? 'goalkeeper' : ''}`}
+                style={player.side === 'local' ? { '--team-color': teamAppearance?.color || '#facc15', '--team-color-secondary': teamAppearance?.secondaryColor || '#111827' } : undefined}
                 onClick={() => setSelectedPlayerId(player.id)}
                 onPointerDown={(event) => handlePointerDown(event, player)}
                 onPointerMove={handlePointerMove}
@@ -283,6 +285,7 @@ export default function TacticsBoardModal({
                     key={player.id}
                     type="button"
                     className={`tactics-squad-player ${isSelected ? 'selected' : ''} ${player.role === 'POR' ? 'goalkeeper' : ''}`}
+                    style={{ '--team-color': teamAppearance?.color || '#facc15', '--team-color-secondary': teamAppearance?.secondaryColor || '#111827' }}
                     onClick={() => toggleTacticalPlayer(player)}
                     aria-pressed={isSelected}
                     disabled={isUnavailable}

@@ -20,6 +20,8 @@ import TacticsBoardModal from './components/TacticsBoardModal';
 import {
   CLUB_NAME,
   createEmptyMatchState,
+  DEFAULT_LEAGUE_LOGO,
+  DEFAULT_TEAM_APPEARANCE,
   loadMatchState,
   normalizeMatchState,
   ROSTER_SIZE,
@@ -33,7 +35,7 @@ function buildEvent(type, label, team = 'neutral', players = []) {
     type,
     label,
     team,
-    players: players.map((player) => ({ name: player.name, number: player.number })),
+    players: players.map((player) => ({ id: player.id, name: player.name, number: player.number })),
     createdAt: new Date().toISOString(),
   };
 }
@@ -71,7 +73,7 @@ function getMatchSide(rosterTeam, clubSide) {
 }
 
 function formatPlayerEventLabel(player, rosterTeam) {
-  return rosterTeam === 'visitor' ? `#${player.number}` : player.name;
+  return rosterTeam === 'visitor' ? `${player.number}` : player.name;
 }
 
 function App() {
@@ -97,6 +99,9 @@ function App() {
   const [halfTimeNoticeShown, setHalfTimeNoticeShown] = useState(false);
   const [fullTimeNoticeShown, setFullTimeNoticeShown] = useState(false);
   const [finalizeConfirmOpen, setFinalizeConfirmOpen] = useState(false);
+  const [equipmentOpen, setEquipmentOpen] = useState(false);
+  const [equipmentDraft, setEquipmentDraft] = useState(null);
+  const [activeColorSlot, setActiveColorSlot] = useState('color');
 
   useEffect(() => {
     let isMounted = true;
@@ -233,6 +238,44 @@ function App() {
     const reader = new FileReader();
     reader.onload = () => handleClubCrestChange(String(reader.result));
     reader.readAsDataURL(file);
+  };
+
+  const handleLeagueNameChange = (leagueName) => {
+    updateMatchState((currentState) => ({ ...currentState, leagueName }));
+  };
+
+  const handleLeagueLogoChange = (leagueLogo) => {
+    updateMatchState((currentState) => ({ ...currentState, leagueLogo }));
+  };
+
+  const handleLeagueLogoUpload = (event) => {
+    const [file] = event.target.files || [];
+    if (!file || !file.type.startsWith('image/')) return;
+
+    const reader = new FileReader();
+    reader.onload = () => handleLeagueLogoChange(String(reader.result));
+    reader.readAsDataURL(file);
+  };
+
+  const handleTeamAppearanceChange = (field, value) => {
+    setEquipmentDraft((currentAppearance) => ({
+      ...(currentAppearance || matchState.teamAppearance || DEFAULT_TEAM_APPEARANCE),
+      [field]: value,
+    }));
+  };
+
+  const openEquipment = () => {
+    setEquipmentDraft({ ...(matchState.teamAppearance || DEFAULT_TEAM_APPEARANCE) });
+    setActiveColorSlot('color');
+    setEquipmentOpen((isOpen) => !isOpen);
+  };
+
+  const confirmEquipment = () => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      teamAppearance: equipmentDraft || currentState.teamAppearance || DEFAULT_TEAM_APPEARANCE,
+    }));
+    setEquipmentOpen(false);
   };
 
   const handleToggleRunning = () => {
@@ -443,6 +486,7 @@ function App() {
       elapsedSeconds: matchState.elapsedSeconds,
       clubSide: matchState.clubSide,
       type: calendarMatch?.type || historyMatch?.type || 'Amistoso',
+      teamAppearance: { ...(matchState.teamAppearance || DEFAULT_TEAM_APPEARANCE) },
       events: [...matchState.events],
       roster: {
         local: [...matchState.roster.local],
@@ -1309,12 +1353,14 @@ function App() {
                   onApplyFormation={handleApplyFormation}
                   selectingInjured={selectingInjured}
                   showPlayerNames={Boolean(activeCalendarMatchId)}
+                  teamAppearance={matchState.teamAppearance}
                 />
               </div>
 
               <div className="content-grid">
                 <MatchEvents
                   events={matchState.events}
+                  teamAppearance={matchState.teamAppearance}
                   onStartNewMatch={() => {
                     setActiveSection('calendar');
                     setStartMatchOpen(false);
@@ -1333,30 +1379,50 @@ function App() {
                 </div>
               </header>
               <section className="team-details-panel" aria-label="Datos del club">
-                <label className="club-name-field team-club-name-field">
-                  Nombre del club
-                  <input value={matchState.teams[matchState.clubSide]} onChange={(event) => handleTeamNameChange(matchState.clubSide, event.target.value)} />
-                </label>
                 <label className="club-name-field season-name-field">
                   Temporada actual
                   <input value={teamSeasonDraft || matchState.currentSeason} onChange={(event) => setTeamSeasonDraft(event.target.value)} placeholder="2026-2027" />
                   <button type="button" onClick={handleCreateSeason}>Crear temporada</button>
                 </label>
               </section>
-              <section className="club-crest-manager" aria-label="Escudo del club">
-                <img className="club-crest-preview" src={matchState.clubCrest} alt={`Escudo de ${matchState.teams[matchState.clubSide]}`} />
-                <div className="club-crest-controls">
-                  <strong>Escudo del club</strong>
-                  <label className="crest-upload-button">
-                    Subir imagen
-                    <input type="file" accept="image/*" onChange={handleClubCrestUpload} />
-                  </label>
-                  <label className="crest-url-field">
-                    URL de imagen
-                    <input value={matchState.clubCrest.startsWith('data:') ? '' : matchState.clubCrest} onChange={(event) => handleClubCrestChange(event.target.value)} placeholder="https://..." />
-                  </label>
-                </div>
-              </section>
+              <div className="identity-managers">
+                <section className="club-crest-manager" aria-label="Escudo del club">
+                  <img className="club-crest-preview" src={matchState.clubCrest} alt={`Escudo de ${matchState.teams[matchState.clubSide]}`} />
+                  <div className="club-crest-controls">
+                    <label className="club-name-field">
+                      Nombre del club
+                      <input value={matchState.teams[matchState.clubSide]} onChange={(event) => handleTeamNameChange(matchState.clubSide, event.target.value)} />
+                    </label>
+                    <strong>Escudo del club</strong>
+                    <label className="crest-upload-button">
+                      Subir imagen
+                      <input type="file" accept="image/*" onChange={handleClubCrestUpload} />
+                    </label>
+                    <label className="crest-url-field">
+                      URL de imagen
+                      <input value={matchState.clubCrest.startsWith('data:') ? '' : matchState.clubCrest} onChange={(event) => handleClubCrestChange(event.target.value)} placeholder="https://..." />
+                    </label>
+                  </div>
+                </section>
+                <section className="club-crest-manager league-logo-manager" aria-label="Liga">
+                  <img className="club-crest-preview" src={matchState.leagueLogo || DEFAULT_LEAGUE_LOGO} alt={`Logo de ${matchState.leagueName || 'la liga'}`} />
+                  <div className="club-crest-controls">
+                    <label className="club-name-field">
+                      Nombre de la liga
+                      <input value={matchState.leagueName} onChange={(event) => handleLeagueNameChange(event.target.value)} placeholder="Nombre de la liga" />
+                    </label>
+                    <strong>Logo de la liga</strong>
+                    <label className="crest-upload-button">
+                      Subir imagen
+                      <input type="file" accept="image/*" onChange={handleLeagueLogoUpload} />
+                    </label>
+                    <label className="crest-url-field">
+                      URL de imagen
+                      <input value={matchState.leagueLogo.startsWith('data:') ? '' : matchState.leagueLogo} onChange={(event) => handleLeagueLogoChange(event.target.value)} placeholder="https://..." />
+                    </label>
+                  </div>
+                </section>
+              </div>
               <RosterPanel
                 teams={matchState.teams}
                 roster={matchState.roster}
@@ -1367,11 +1433,45 @@ function App() {
                 lineupConfirmed={matchState.lineupConfirmed}
                 managementOnly={true}
               />
+              <section className="equipment-panel" aria-label="Equipación">
+                <div className="equipment-heading">
+                  <div>
+                    <h2>Equipación</h2>
+                    <p>Elige el color y la forma de tus jugadoras.</p>
+                  </div>
+                  <button type="button" className="secondary-button equipment-toggle" onClick={openEquipment} aria-expanded={equipmentOpen}>
+                    {equipmentOpen ? '− Ocultar' : '+ Equipación'}
+                  </button>
+                </div>
+                {equipmentOpen && (
+                  <div className="equipment-controls">
+                    <div className="equipment-colors">
+                      <strong>Color</strong>
+                      <div className="color-swatches" role="radiogroup" aria-label="Color de la equipación">
+                        {['#facc15', '#ef4444', '#22c55e', '#2563eb', '#111827', '#f8fafc', '#f97316', '#ec4899', '#8b5cf6', '#14b8a6', '#64748b', '#92400e'].map((color) => (
+                          <button type="button" key={color} className={`color-swatch ${equipmentDraft?.[activeColorSlot] === color ? 'selected' : ''}`} style={{ backgroundColor: color }} onClick={() => handleTeamAppearanceChange(activeColorSlot, color)} aria-label={`${activeColorSlot === 'color' ? 'Color principal' : 'Color secundario'} ${color}`} aria-pressed={equipmentDraft?.[activeColorSlot] === color} />
+                        ))}
+                      </div>
+                      <div className="color-slot-options">
+                        <button type="button" className={activeColorSlot === 'color' ? 'active' : ''} onClick={() => setActiveColorSlot('color')}>Color principal</button>
+                        <button type="button" className={activeColorSlot === 'secondaryColor' ? 'active' : ''} onClick={() => setActiveColorSlot('secondaryColor')}>Color secundario</button>
+                      </div>
+                    </div>
+                    <div className="equipment-shapes">
+                      <strong>Forma de las jugadoras</strong>
+                      <div className="shape-options" role="radiogroup" aria-label="Forma de la equipación">
+                        <span className="shape-option selected"><span className="appearance-preview ball-shape" aria-hidden="true" />Esfera</span>
+                      </div>
+                    </div>
+                    <button type="button" className="primary-button equipment-confirm-button" onClick={confirmEquipment}>Confirmar equipación</button>
+                  </div>
+                )}
+              </section>
             </section>
           )}
 
           {activeSection === 'history' && (
-            <HistoryDashboard matches={matchState.history} onEditMatch={handleEditHistoryMatch} onDeleteMatch={handleDeleteHistoryMatch} />
+            <HistoryDashboard matches={matchState.history} teamAppearance={matchState.teamAppearance} onEditMatch={handleEditHistoryMatch} onDeleteMatch={handleDeleteHistoryMatch} />
           )}
         </div>
       </div>
@@ -1379,6 +1479,7 @@ function App() {
       {(tacticsBoardOpen || activeSection === 'tactics') && (
         <TacticsBoardModal
           roster={matchState.roster}
+          teamAppearance={matchState.teamAppearance}
           onClose={() => {
             setTacticsBoardOpen(false);
             setActiveSection('live');

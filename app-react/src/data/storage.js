@@ -3,6 +3,9 @@ const ROSTER_BACKUP_KEY = 'partido_directo_roster_backup_v1';
 export const ROSTER_SIZE = 20;
 export const CLUB_NAME = 'C.F. NAVARCLES';
 export const DEFAULT_CLUB_CREST = '/club-crest.svg';
+export const DEFAULT_LEAGUE_NAME = 'Liga';
+export const DEFAULT_LEAGUE_LOGO = '/fcf-logo.svg';
+export const DEFAULT_TEAM_APPEARANCE = { color: '#facc15', secondaryColor: '#111827', shape: 'ball' };
 const BLOCKED_PLAYER_NUMBERS = new Set([28, 29, 30]);
 
 function getDefaultSeason() {
@@ -217,6 +220,9 @@ export function createEmptyMatchState() {
       visitor: 'VISITANTE',
     },
     clubCrest: DEFAULT_CLUB_CREST,
+    leagueName: DEFAULT_LEAGUE_NAME,
+    leagueLogo: DEFAULT_LEAGUE_LOGO,
+    teamAppearance: { ...DEFAULT_TEAM_APPEARANCE },
     clubSide: 'local',
     calendar: [],
     currentSeason: getDefaultSeason(),
@@ -267,6 +273,21 @@ export function normalizeMatchState(rawState) {
     clubCrest: typeof rawState.clubCrest === 'string' && rawState.clubCrest.trim()
       ? rawState.clubCrest.trim()
       : DEFAULT_CLUB_CREST,
+    leagueName: typeof rawState.leagueName === 'string' && rawState.leagueName.trim()
+      ? rawState.leagueName.trim()
+      : DEFAULT_LEAGUE_NAME,
+    leagueLogo: typeof rawState.leagueLogo === 'string' && rawState.leagueLogo.trim()
+      ? rawState.leagueLogo.trim()
+      : DEFAULT_LEAGUE_LOGO,
+    teamAppearance: {
+      color: typeof rawState.teamAppearance?.color === 'string' && rawState.teamAppearance.color.trim()
+        ? rawState.teamAppearance.color
+        : DEFAULT_TEAM_APPEARANCE.color,
+      secondaryColor: typeof rawState.teamAppearance?.secondaryColor === 'string' && rawState.teamAppearance.secondaryColor.trim()
+        ? rawState.teamAppearance.secondaryColor
+        : DEFAULT_TEAM_APPEARANCE.secondaryColor,
+      shape: 'ball',
+    },
     clubSide: rawState.clubSide === 'visitor' ? 'visitor' : 'local',
     calendar: normalizeCalendarMatches(rawState.calendar),
     currentSeason: typeof rawState.currentSeason === 'string' && rawState.currentSeason.trim()

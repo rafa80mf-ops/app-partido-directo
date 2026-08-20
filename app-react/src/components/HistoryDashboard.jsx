@@ -40,19 +40,31 @@ function buildPlayerStats(matches) {
   ));
 }
 
-export default function HistoryDashboard({ matches, onEditMatch, onDeleteMatch }) {
+function getEventIcon(eventType) {
+  return {
+    goal: '⚽',
+    assist: '🅰️',
+    yellow: '🟨',
+    red: '🟥',
+    substitution: '🔄',
+    injury: '🩹',
+  }[eventType] || '•';
+}
+
+function formatReportEventLabel(event) {
+  return event.team === 'visitor' ? event.label.replace(/^#(\d+)/, '$1') : event.label;
+}
+
+export default function HistoryDashboard({ matches, onEditMatch, onDeleteMatch, teamAppearance }) {
   const [view, setView] = useState('reports');
   const [selectedMatchId, setSelectedMatchId] = useState(matches.at(-1)?.id || null);
-  const [reportSide, setReportSide] = useState('full');
-  const [openCompetition, setOpenCompetition] = useState(null);
+  const [openCompetition, setOpenCompetition] = useState(() => (
+    matches.some((match) => (match.type || 'Liga') === 'Liga') ? 'Liga' : 'Amistoso'
+  ));
   const playerStats = useMemo(() => buildPlayerStats(matches), [matches]);
   const selectedMatch = matches.find((match) => match.id === selectedMatchId) || null;
-  const selectedEvents = (selectedMatch?.events || []).filter((event) => reportSide === 'full' || event.team === reportSide);
-  const reportTitle = reportSide === 'local'
-    ? `Acta local: ${selectedMatch?.teams.local || ''}`
-    : reportSide === 'visitor'
-      ? `Acta visitante: ${selectedMatch?.teams.visitor || ''}`
-      : 'Acta general';
+  const selectedAppearance = selectedMatch?.teamAppearance || teamAppearance;
+  const selectedEvents = selectedMatch?.events || [];
   const matchesByType = useMemo(() => ({
     Liga: [...matches].filter((match) => (match.type || 'Liga') === 'Liga').reverse(),
     Amistoso: [...matches].filter((match) => (match.type || 'Liga') === 'Amistoso').reverse(),
@@ -73,17 +85,16 @@ export default function HistoryDashboard({ matches, onEditMatch, onDeleteMatch }
             {Object.entries(matchesByType).map(([type, typeMatches]) => typeMatches.length > 0 && (
               <section className="report-competition-group" key={type}>
                 <button type="button" className="report-competition-toggle" onClick={() => setOpenCompetition((current) => current === type ? null : type)} aria-expanded={openCompetition === type}>
-                  <span>{type === 'Liga' ? 'Liga' : 'Amistosos'}</span><span>{openCompetition === type ? '−' : '+'}</span>
+                  <span><span className="competition-icon" aria-hidden="true">{type === 'Liga' ? <img src="/fcf-logo.svg" alt="" /> : <img src="/club-crest.svg" alt="" />}</span>{type === 'Liga' ? 'Liga' : 'Amistosos'}</span><span aria-hidden="true">{openCompetition === type ? '⌃' : '⌄'}</span>
                 </button>
-                {openCompetition === type && typeMatches.map((match) => <button key={match.id} type="button" className={selectedMatch?.id === match.id ? 'active' : ''} onClick={() => { setSelectedMatchId(match.id); setReportSide('full'); }}><strong>{match.teams.local} {match.scores.local} - {match.scores.visitor} {match.teams.visitor}</strong><span>{match.finishedAt}</span></button>)}
+                {openCompetition === type && typeMatches.map((match) => <button key={match.id} type="button" className={selectedMatch?.id === match.id ? 'active' : ''} onClick={() => setSelectedMatchId(match.id)}><strong>{match.teams.local} {match.scores.local} - {match.scores.visitor} {match.teams.visitor}</strong><span>🗓️ {match.finishedAt}</span></button>)}
               </section>
             ))}
           </aside>
           {selectedMatch && <article className="match-report">
-            <div className="match-report-heading"><div><span className="report-competition-badge">{selectedMatch.type || 'Liga'}</span><h2>{selectedMatch.teams.local} {selectedMatch.scores.local} - {selectedMatch.scores.visitor} {selectedMatch.teams.visitor}</h2><p>{selectedMatch.finishedAt}</p></div><div className="match-report-actions"><button type="button" className="secondary-button" onClick={() => onEditMatch(selectedMatch)}>Modificar acta</button><button type="button" className="delete-report-button" onClick={() => { if (window.confirm('¿Borrar esta acta?')) onDeleteMatch(selectedMatch.id); }}>Borrar acta</button></div></div>
-            <div className="report-tabs" role="tablist" aria-label="Tipo de acta"><button type="button" className={reportSide === 'full' ? 'active' : ''} onClick={() => setReportSide('full')}>Acta general</button><button type="button" className={reportSide === 'local' ? 'active' : ''} onClick={() => setReportSide('local')}>Actas locales</button><button type="button" className={reportSide === 'visitor' ? 'active' : ''} onClick={() => setReportSide('visitor')}>Actas visitantes</button></div>
-            <h3 className="report-title">{reportTitle}</h3>
-            {selectedEvents.length === 0 ? <p className="empty-state">No hay acciones registradas.</p> : <ol className={`report-event-list ${reportSide}`}>{selectedEvents.slice().reverse().map((event) => <li key={event.id}>{event.label}</li>)}</ol>}
+            <div className="match-report-heading"><div><span className="report-competition-badge">{selectedMatch.type === 'Amistoso' ? <><img src="/club-crest.svg" alt="" /> Amistoso</> : <><img src="/fcf-logo.svg" alt="" /> Liga</>}</span><h2>{selectedMatch.teams.local} {selectedMatch.scores.local} - {selectedMatch.scores.visitor} {selectedMatch.teams.visitor}</h2><p>🗓️ {selectedMatch.finishedAt}</p></div><div className="match-report-actions"><button type="button" className="icon-report-button edit-report-button" onClick={() => onEditMatch(selectedMatch)} title="Modificar acta" aria-label="Modificar acta">✎</button><button type="button" className="icon-report-button delete-report-button" onClick={() => { if (window.confirm('¿Borrar esta acta?')) onDeleteMatch(selectedMatch.id); }} title="Borrar acta" aria-label="Borrar acta">⌫</button></div></div>
+            <h3 className="report-title">Acta</h3>
+            {selectedEvents.length === 0 ? <p className="empty-state">No hay acciones registradas.</p> : <ol className="report-event-list">{selectedEvents.slice().reverse().map((event) => <li key={event.id} className={`${event.team === 'visitor' ? 'visitor-event' : 'local-event'} ${event.type === 'yellow' ? 'yellow-card-event' : ''}`}><span className={`report-event-icon ${event.type === 'yellow' ? 'yellow-card-icon' : ''} ${event.team === 'visitor' ? 'visitor-action-icon' : 'local-action-icon'} ${event.team === 'local' && selectedAppearance?.shape === 'shirt' ? 'appearance-shirt' : ''}`} style={event.team === 'local' ? { '--team-color': selectedAppearance?.color || '#facc15' } : undefined} aria-hidden="true">{getEventIcon(event.type)}</span><span>{formatReportEventLabel(event)}</span></li>)}</ol>}
           </article>}
         </div>
       ) : (
@@ -91,4 +102,4 @@ export default function HistoryDashboard({ matches, onEditMatch, onDeleteMatch }
       )}
     </section>
   );
-}
+        return results

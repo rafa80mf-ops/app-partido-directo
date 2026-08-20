@@ -29,18 +29,22 @@ export const FORMATION_POSITIONS = {
 
 const FORMATION_NAMES = Object.keys(FORMATION_POSITIONS);
 
-function sortBenchPlayers(firstPlayer, secondPlayer) {
-  const firstHasName = Boolean(firstPlayer.name?.trim()) && !/^Suplente\s+\d+$/i.test(firstPlayer.name.trim());
-  const secondHasName = Boolean(secondPlayer.name?.trim()) && !/^Suplente\s+\d+$/i.test(secondPlayer.name.trim());
-
-  if (firstHasName !== secondHasName) {
-    return firstHasName ? -1 : 1;
-  }
-
-  return firstPlayer.number - secondPlayer.number;
+function hasRegisteredName(player) {
+  const name = player.name?.trim() || '';
+  return Boolean(name) && !/^(Suplente|Portera|Defensa|Media|Delantera)\s+\d+$/i.test(name);
 }
 
-export default function PitchField({ teams, clubSide, roster, ball, onPlayerClick, onPlayerMove, onApplyFormation, selectingInjured, showPlayerNames }) {
+function sortPlayersByNumber(firstPlayer, secondPlayer) {
+  return (Number(firstPlayer.number) || 0) - (Number(secondPlayer.number) || 0);
+}
+
+function sortBenchPlayers(players) {
+  const namedPlayers = players.filter(hasRegisteredName).sort(sortPlayersByNumber);
+  const unnamedPlayers = players.filter((player) => !hasRegisteredName(player)).sort(sortPlayersByNumber);
+  return [...namedPlayers, ...unnamedPlayers];
+}
+
+export default function PitchField({ teams, clubSide, roster, ball, onPlayerClick, onPlayerMove, onApplyFormation, selectingInjured, showPlayerNames, teamAppearance }) {
   const dragRef = useRef(null);
   const [benchTab, setBenchTab] = useState('team');
   const [formationSide, setFormationSide] = useState('local');
@@ -90,10 +94,11 @@ export default function PitchField({ teams, clubSide, roster, ball, onPlayerClic
   const renderTeamPlayers = (teamKey, players) => players.map((player) => (
     <div
       key={player.id}
-      className={`player-token ${(teamKey === 'visitor' ? 'visitor-player' : '')} ${player.role === 'POR' ? 'goalkeeper' : ''} ${player.injured ? 'injured' : ''} ${selectingInjured ? 'selectable' : ''}`}
+      className={`player-token ${(teamKey === 'visitor' ? 'visitor-player' : '')} ${teamKey === 'local' ? `appearance-${teamAppearance?.shape || 'ball'}` : ''} ${player.role === 'POR' ? 'goalkeeper' : ''} ${player.injured ? 'injured' : ''} ${selectingInjured ? 'selectable' : ''}`}
       style={{
         left: `${player.x}%`,
         top: `${player.y}%`,
+        ...(teamKey === 'local' ? { '--team-color': teamAppearance?.color || '#facc15', '--team-color-secondary': teamAppearance?.secondaryColor || '#111827' } : {}),
       }}
       title={`Dorsal ${player.number}${player.injured ? ' (Lesionada)' : ''}`}
       onPointerDown={(event) => handlePointerDown(event, player, teamKey)}
@@ -169,10 +174,13 @@ export default function PitchField({ teams, clubSide, roster, ball, onPlayerClic
           <div className="bench-group" key={team}>
             <h3>{showPlayerNames ? teamName : team === 'local' ? 'Banquillo' : 'Banquillo rival'}</h3>
             <div className="bench-players">
-              {[...(team === 'visitor' ? (roster.visitorBench || []) : roster.bench)].filter((player) => !player.absent).sort(sortBenchPlayers).map((player) => (
+              {sortBenchPlayers([...(team === 'visitor' ? (roster.visitorBench || []) : roster.bench)]
+                .filter((player) => !player.absent && !player.injured))
+                .map((player) => (
                 <div
                   key={`${team}-${player.id}`}
-                  className={`bench-player ${team === 'visitor' ? 'visitor-bench' : ''} ${player.role === 'POR' ? 'goalkeeper' : ''} ${selectingInjured && team === 'local' ? 'selectable' : ''}`}
+                  className={`bench-player ${team === 'visitor' ? 'visitor-bench' : `appearance-${teamAppearance?.shape || 'ball'}`} ${player.role === 'POR' ? 'goalkeeper' : ''} ${selectingInjured && team === 'local' ? 'selectable' : ''}`}
+                  style={team === 'local' ? { '--team-color': teamAppearance?.color || '#facc15', '--team-color-secondary': teamAppearance?.secondaryColor || '#111827' } : undefined}
                   title={`Dorsal ${player.number}${player.injured ? ' (Lesionada)' : ''}`}
                   onClick={() => {
                     if (selectingInjured && onPlayerClick) {

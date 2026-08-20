@@ -105,7 +105,7 @@ export default function LineupModal({ players, initialSelectedIds, onConfirm, on
                 aria-pressed={selectedIds.has(player.id)}
               >
                 <strong>{player.number}</strong>
-                <span>{player.name}</span>
+                <span className="lineup-player-name">{player.name}</span>
                 <small>{absentReasons[player.id] ? `Ausente: ${absentReasons[player.id]}` : selectedIds.has(player.id) ? 'Titular' : 'Disponible'}</small>
               </button>
               <button type="button" className="absence-toggle" onClick={(event) => toggleAbsence(event, player.id)}>
