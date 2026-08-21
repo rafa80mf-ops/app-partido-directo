@@ -100,6 +100,6 @@ export default function HistoryDashboard({ matches, onEditMatch, onDeleteMatch, 
       ) : (
         <div className="stats-table-wrap"><table className="stats-table"><thead><tr><th>Jugadora</th><th>Min.</th><th>Goles</th><th>Asist.</th><th>Amar.</th><th>Rojas</th></tr></thead><tbody>{playerStats.map((player) => <tr key={player.key}><td><strong>{player.number}</strong> {player.name}</td><td>{player.minutes}</td><td>{player.goals}</td><td>{player.assists}</td><td>{player.yellowCards}</td><td>{player.redCards}</td></tr>)}</tbody></table></div>
       )}
-    </section>
-  );
-        return results
+    </section>       
+     );
+}

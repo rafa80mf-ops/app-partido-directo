@@ -1420,6 +1420,15 @@
   z-index: 5;
 }
 
+.tactics-ball {
+  cursor: grab;
+  touch-action: none;
+}
+
+.tactics-ball:active {
+  cursor: grabbing;
+}
+
 .pitch-ball::before,
 .pitch-ball::after,
 .pitch-ball span {
@@ -1713,6 +1722,37 @@
   flex-direction: column;
 }
 
+.tactics-drawing-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.tactics-drawing-controls button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid #d97706;
+  border-radius: 6px;
+  background: #fbbf24;
+  color: #0f172a;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.tactics-drawing-controls button.active {
+  border-color: #b45309;
+  background: #f59e0b;
+  color: #111827;
+}
+
+.tactics-drawing-controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .modal-overlay.tactics-board-overlay {
   padding: 0;
   align-items: stretch;
@@ -1763,6 +1803,63 @@
   border: 3px solid rgba(255, 255, 255, 0.9);
   border-radius: 50%;
   transform: translate(-50%, -50%);
+}
+
+.tactics-drawing-layer {
+  position: absolute;
+  z-index: 6;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.tactics-drawing-layer.active {
+  cursor: crosshair;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.tactics-drawing-line {
+  fill: none;
+  stroke: #fb923c;
+  stroke-width: 1.25;
+  stroke-linecap: round;
+  stroke-dasharray: 0;
+  pointer-events: stroke;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.tactics-drawing-hit-area {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12;
+  pointer-events: stroke;
+  cursor: pointer;
+  vector-effect: non-scaling-stroke;
+}
+
+.tactics-drawing-line.arrow {
+  marker-end: url(#tactics-arrowhead);
+}
+
+.tactics-drawing-line.dashed {
+  stroke-dasharray: 4 2.5;
+}
+
+.tactics-drawing-shape {
+  fill: rgba(251, 146, 60, 0.08);
+  stroke: #fb923c;
+  stroke-width: 1.25;
+  pointer-events: stroke;
+  cursor: pointer;
+  vector-effect: non-scaling-stroke;
+}
+
+#tactics-arrowhead path {
+  fill: #fb923c;
 }
 
 .tactics-squad-picker {

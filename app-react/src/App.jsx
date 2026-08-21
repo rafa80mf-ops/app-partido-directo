@@ -914,6 +914,13 @@ function App() {
     });
   };
 
+  const handleTacticsBallMove = (position) => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      ball: position,
+    }));
+  };
+
   const handleInjurySubstitution = (substituteId) => {
     if (!injuredPlayerModal) return;
 
@@ -1479,12 +1486,14 @@ function App() {
       {(tacticsBoardOpen || activeSection === 'tactics') && (
         <TacticsBoardModal
           roster={matchState.roster}
+          ball={matchState.ball}
           teamAppearance={matchState.teamAppearance}
           onClose={() => {
             setTacticsBoardOpen(false);
             setActiveSection('live');
           }}
           onMovePlayer={handleTacticsBoardMove}
+          onMoveBall={handleTacticsBallMove}
           onApplyFormation={handleApplyFormation}
         />
       )}

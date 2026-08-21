@@ -40,20 +40,37 @@ function prioritizeGoalkeeper(players) {
   return [...players].sort((firstPlayer, secondPlayer) => Number(secondPlayer.role === 'POR') - Number(firstPlayer.role === 'POR'));
 }
 
+function getSquareBounds(start, end) {
+  const side = Math.max(Math.abs(end.x - start.x), Math.abs(end.y - start.y));
+  return {
+    x: end.x < start.x ? start.x - side : start.x,
+    y: end.y < start.y ? start.y - side : start.y,
+    side,
+  };
+}
+
 export default function TacticsBoardModal({
   roster,
+  ball,
   onClose,
   onMovePlayer,
+  onMoveBall,
   onApplyFormation,
   teamAppearance,
 }) {
   const dragRef = useRef(null);
+  const drawingRef = useRef(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState(null);
   const [tacticalPlayerIds, setTacticalPlayerIds] = useState([]);
   const [tacticalPositions, setTacticalPositions] = useState({});
   const [visitorTacticalPlayerIds, setVisitorTacticalPlayerIds] = useState([]);
   const [visitorTacticalPositions, setVisitorTacticalPositions] = useState({});
+  const [tacticalBallPosition, setTacticalBallPosition] = useState(ball || { x: 50, y: 50 });
   const [formationOpen, setFormationOpen] = useState(false);
+  const [drawingMode, setDrawingMode] = useState(false);
+  const [drawingType, setDrawingType] = useState('dashed');
+  const [tacticalLines, setTacticalLines] = useState([]);
+  const [drawingPreview, setDrawingPreview] = useState(null);
 
   const squadPlayers = useMemo(() => {
     const players = [...(roster?.local || []), ...(roster?.bench || [])];
@@ -157,12 +174,59 @@ export default function TacticsBoardModal({
     const { player, board } = dragRef.current;
     const position = getBoardPosition(event, board);
 
+    if (player === 'ball') {
+      setTacticalBallPosition(position);
+      onMoveBall?.(position);
+      return;
+    }
+
     const setPositions = player.side === 'visitor' ? setVisitorTacticalPositions : setTacticalPositions;
     setPositions((current) => ({ ...current, [player.id]: position }));
   };
 
   const handlePointerUp = (event) => {
     dragRef.current = null;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+  };
+
+  const handleDrawingPointerDown = (event) => {
+    if (!drawingMode) return;
+
+    const board = event.currentTarget.closest('.tactics-board-surface');
+    if (!board) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    const start = getBoardPosition(event, board);
+    drawingRef.current = { board, start };
+    setDrawingPreview({ start, end: start, type: drawingType });
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleDrawingPointerMove = (event) => {
+    if (!drawingRef.current) return;
+
+    const end = getBoardPosition(event, drawingRef.current.board);
+    setDrawingPreview({ start: drawingRef.current.start, end, type: drawingType });
+  };
+
+  const handleDrawingPointerUp = (event) => {
+    if (!drawingRef.current) return;
+
+    const end = getBoardPosition(event, drawingRef.current.board);
+    const start = drawingRef.current.start;
+    setTacticalLines((currentLines) => [
+      ...currentLines,
+      { id: crypto.randomUUID(), start, end, type: drawingType },
+    ]);
+    drawingRef.current = null;
+    setDrawingPreview(null);
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+  };
+
+  const handleDrawingPointerCancel = (event) => {
+    drawingRef.current = null;
+    setDrawingPreview(null);
     event.currentTarget.releasePointerCapture?.(event.pointerId);
   };
 
@@ -228,6 +292,36 @@ export default function TacticsBoardModal({
       <div className="modal-content tactics-board-modal" onClick={(event) => event.stopPropagation()}>
         <div className="modal-heading-row">
           <h2>Pizarra táctica</h2>
+          <div className="tactics-drawing-controls" aria-label="Controles de dibujo">
+            <button
+              type="button"
+              className={drawingMode ? 'active' : ''}
+              onClick={() => setDrawingMode((isActive) => !isActive)}
+              aria-pressed={drawingMode}
+              title="Dibujar líneas o flechas"
+            >
+              {drawingMode ? 'Terminar dibujo' : 'Dibujar'}
+            </button>
+            {drawingMode && (
+              <>
+                <button type="button" className={drawingType === 'dashed' ? 'active' : ''} onClick={() => setDrawingType('dashed')} aria-pressed={drawingType === 'dashed'}>
+                  Flecha discontinua
+                </button>
+                <button type="button" className={drawingType === 'arrow' ? 'active' : ''} onClick={() => setDrawingType('arrow')} aria-pressed={drawingType === 'arrow'}>
+                  Flecha continua
+                </button>
+                <button type="button" className={drawingType === 'circle' ? 'active' : ''} onClick={() => setDrawingType('circle')} aria-pressed={drawingType === 'circle'}>
+                  Círculo
+                </button>
+                <button type="button" className={drawingType === 'square' ? 'active' : ''} onClick={() => setDrawingType('square')} aria-pressed={drawingType === 'square'}>
+                  Cuadrado
+                </button>
+              </>
+            )}
+            <button type="button" onClick={() => setTacticalLines([])} disabled={tacticalLines.length === 0}>
+              Limpiar
+            </button>
+          </div>
           <button type="button" className="icon-close-button" onClick={onClose} aria-label="Cerrar pizarra">×</button>
         </div>
 
@@ -249,12 +343,102 @@ export default function TacticsBoardModal({
             <div className="corner-flag flag-bottom-left" aria-hidden="true" />
             <div className="corner-flag flag-top-right" aria-hidden="true" />
             <div className="corner-flag flag-bottom-right" aria-hidden="true" />
+            <svg
+              className={`tactics-drawing-layer ${drawingMode ? 'active' : ''}`}
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
+              aria-label="Anotaciones tácticas"
+              onPointerDown={handleDrawingPointerDown}
+              onPointerMove={handleDrawingPointerMove}
+              onPointerUp={handleDrawingPointerUp}
+              onPointerCancel={handleDrawingPointerCancel}
+            >
+              <defs>
+                <marker id="tactics-arrowhead" markerWidth="4" markerHeight="4" refX="3.2" refY="2" orient="auto" markerUnits="userSpaceOnUse">
+                  <path d="M 0 0 L 4 2 L 0 4 z" />
+                </marker>
+              </defs>
+              {[...tacticalLines, ...(drawingPreview ? [{ ...drawingPreview, id: 'preview' }] : [])].map((line) => (
+                <g key={line.id}>
+                  {line.id !== 'preview' && line.type !== 'circle' && line.type !== 'square' && (
+                    <line
+                      x1={line.start.x}
+                      y1={line.start.y}
+                      x2={line.end.x}
+                      y2={line.end.y}
+                      className="tactics-drawing-hit-area"
+                      onPointerDown={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        setTacticalLines((currentLines) => currentLines.filter((currentLine) => currentLine.id !== line.id));
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      aria-label="Borrar anotación táctica"
+                    />
+                  )}
+                  {line.type === 'circle' && (
+                    <circle
+                      cx={(line.start.x + line.end.x) / 2}
+                      cy={(line.start.y + line.end.y) / 2}
+                      r={Math.min(Math.abs(line.end.x - line.start.x), Math.abs(line.end.y - line.start.y)) / 2}
+                      className="tactics-drawing-shape"
+                      onPointerDown={line.id !== 'preview' ? (event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        setTacticalLines((currentLines) => currentLines.filter((currentLine) => currentLine.id !== line.id));
+                      } : undefined}
+                      role={line.id !== 'preview' ? 'button' : undefined}
+                      aria-label={line.id !== 'preview' ? 'Borrar círculo' : undefined}
+                    />
+                  )}
+                  {line.type === 'square' && (
+                    <rect
+                      {...(() => {
+                        const square = getSquareBounds(line.start, line.end);
+                        return { x: square.x, y: square.y, width: square.side, height: square.side };
+                      })()}
+                      className="tactics-drawing-shape"
+                      onPointerDown={line.id !== 'preview' ? (event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        setTacticalLines((currentLines) => currentLines.filter((currentLine) => currentLine.id !== line.id));
+                      } : undefined}
+                      role={line.id !== 'preview' ? 'button' : undefined}
+                      aria-label={line.id !== 'preview' ? 'Borrar cuadrado' : undefined}
+                    />
+                  )}
+                  {line.type !== 'circle' && line.type !== 'square' && (
+                    <line
+                      x1={line.start.x}
+                      y1={line.start.y}
+                      x2={line.end.x}
+                      y2={line.end.y}
+                      className={`tactics-drawing-line arrow ${line.type === 'dashed' ? 'dashed' : ''}`}
+                    />
+                  )}
+                </g>
+              ))}
+            </svg>
+            <div
+              className="pitch-ball tactics-ball"
+              style={{ left: `${tacticalBallPosition.x}%`, top: `${tacticalBallPosition.y}%` }}
+              onPointerDown={(event) => handlePointerDown(event, 'ball')}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerUp}
+              role="button"
+              tabIndex={0}
+              aria-label="Balón táctico"
+              title="Arrastrar balón"
+            >
+              <span />
+            </div>
             {boardPlayers.map((player) => (
               <button
                 key={`${player.side}-${player.id}`}
                 type="button"
                 className={`tactics-player ${selectedPlayerId === player.id ? 'selected' : ''} ${player.side === 'visitor' ? 'visitor' : `appearance-${teamAppearance?.shape || 'ball'}`} ${player.role === 'POR' ? 'goalkeeper' : ''}`}
-                style={player.side === 'local' ? { '--team-color': teamAppearance?.color || '#facc15', '--team-color-secondary': teamAppearance?.secondaryColor || '#111827' } : undefined}
                 onClick={() => setSelectedPlayerId(player.id)}
                 onPointerDown={(event) => handlePointerDown(event, player)}
                 onPointerMove={handlePointerMove}
@@ -263,6 +447,7 @@ export default function TacticsBoardModal({
                 style={{
                   left: `${player.x ?? 50}%`,
                   top: `${player.y ?? 50}%`,
+                  ...(player.side === 'local' ? { '--team-color': teamAppearance?.color || '#facc15', '--team-color-secondary': teamAppearance?.secondaryColor || '#111827' } : {}),
                 }}
                 title={player.side === 'visitor' ? `Dorsal ${player.number}` : `${player.name} #${player.number}`}
               >
