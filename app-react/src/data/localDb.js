@@ -35,13 +35,31 @@ export async function saveMatchSnapshot(snapshot) {
   const transaction = database.transaction(MATCH_STORE, 'readwrite');
   const store = transaction.objectStore(MATCH_STORE);
 
-  store.put({
-    id: 'current-match',
-    ...snapshot,
-    updatedAt: snapshot.updatedAt || new Date().toISOString(),
-  });
+  const snapshotUpdatedAt = snapshot.updatedAt || new Date().toISOString();
+  const snapshotTime = Date.parse(snapshotUpdatedAt) || Date.now();
 
-  return snapshot;
+  return new Promise((resolve, reject) => {
+    const currentSnapshotRequest = store.get('current-match');
+
+    currentSnapshotRequest.onsuccess = () => {
+      const currentSnapshotTime = Date.parse(currentSnapshotRequest.result?.updatedAt || '') || 0;
+
+      if (currentSnapshotTime > snapshotTime) {
+        return;
+      }
+
+      store.put({
+        id: 'current-match',
+        ...snapshot,
+        updatedAt: snapshotUpdatedAt,
+      });
+    };
+
+    currentSnapshotRequest.onerror = () => reject(currentSnapshotRequest.error || new Error('No se pudo guardar el partido actual'));
+    transaction.oncomplete = () => resolve(snapshot);
+    transaction.onerror = () => reject(transaction.error || new Error('No se pudo guardar el partido actual'));
+    transaction.onabort = () => reject(transaction.error || new Error('No se pudo guardar el partido actual'));
+  });
 }
 
 export async function loadMatchSnapshot() {

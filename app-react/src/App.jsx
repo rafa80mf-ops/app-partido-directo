@@ -29,7 +29,7 @@ import {
   ROSTER_SIZE,
   saveMatchState,
 } from './data/storage';
-import { loadMatchSnapshot, saveMatchSnapshot } from './data/localDb';
+import { saveMatchSnapshot } from './data/localDb';
 import { translateUiText, translateUiTree } from './i18n/uiTranslator';
 
 function buildEvent(type, label, team = 'neutral', players = []) {
@@ -249,6 +249,10 @@ function App() {
 
     applyTranslations();
 
+    if ((matchState.appLanguage || DEFAULT_APP_LANGUAGE) === DEFAULT_APP_LANGUAGE) {
+      return undefined;
+    }
+
     const observer = new MutationObserver(() => {
       applyTranslations();
     });
@@ -267,67 +271,17 @@ function App() {
   }, [matchState.appLanguage]);
 
   useEffect(() => {
-    let isMounted = true;
-
-    loadMatchSnapshot()
-      .then((savedSnapshot) => {
-        if (!isMounted || !savedSnapshot) {
-          return;
-        }
-
-        setMatchState((currentState) => {
-          const currentUpdatedAt = Date.parse(currentState.updatedAt || '') || 0;
-          const savedUpdatedAt = Date.parse(savedSnapshot.updatedAt || '') || 0;
-
-          if (savedUpdatedAt < currentUpdatedAt) {
-            return currentState;
-          }
-
-          const normalizedSnapshot = normalizeMatchState(savedSnapshot);
-
-          return {
-            ...currentState,
-            ...normalizedSnapshot,
-            teams: {
-              ...currentState.teams,
-              ...(normalizedSnapshot.teams || {}),
-            },
-            scores: {
-              ...currentState.scores,
-              ...(normalizedSnapshot.scores || {}),
-            },
-            roster: normalizedSnapshot.roster || currentState.roster,
-            ball: normalizedSnapshot.ball || currentState.ball,
-            calendar: Array.isArray(normalizedSnapshot.calendar) ? normalizedSnapshot.calendar : currentState.calendar,
-            currentSeason: normalizedSnapshot.currentSeason || currentState.currentSeason,
-            previousSeasons: Array.isArray(normalizedSnapshot.previousSeasons)
-              ? normalizedSnapshot.previousSeasons
-              : currentState.previousSeasons,
-            history: Array.isArray(normalizedSnapshot.history) ? normalizedSnapshot.history : currentState.history,
-            events: Array.isArray(normalizedSnapshot.events) ? normalizedSnapshot.events : currentState.events,
-          };
-        });
-      })
-      .catch(() => {
-        // Se ignora y continúa con el estado local del navegador
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
     if (!matchState.isRunning) {
       return undefined;
     }
 
-    const startedAt = Date.now();
-    const initialElapsedSeconds = matchState.elapsedSeconds;
     const timer = window.setInterval(() => {
-      const elapsedSeconds = initialElapsedSeconds + Math.floor((Date.now() - startedAt) / 1000);
       setMatchState((currentState) => currentState.isRunning
-        ? { ...currentState, elapsedSeconds, updatedAt: new Date().toISOString() }
+        ? {
+            ...currentState,
+            elapsedSeconds: currentState.elapsedSeconds + 1,
+            updatedAt: new Date().toISOString(),
+          }
         : currentState);
     }, 1000);
 
@@ -385,6 +339,29 @@ function App() {
         updatedAt: new Date().toISOString(),
       };
     });
+  };
+
+  const getAvailablePlayers = () => {
+    const currentPlayers = [...matchState.roster.local, ...matchState.roster.bench];
+    const hasSavedPlayerNames = currentPlayers.some((player) => {
+      const name = player.name?.trim() || '';
+      return name && !/^(Suplente|Portera|Defensa|Media|Medio|Delantera)\s*\d*$/i.test(name);
+    });
+    const sourcePlayers = hasSavedPlayerNames
+      ? currentPlayers
+      : [
+          ...normalizeMatchState({ ...matchState, roster: { local: [], bench: [] } }).roster.local,
+          ...normalizeMatchState({ ...matchState, roster: { local: [], bench: [] } }).roster.bench,
+        ];
+
+    return sourcePlayers.map((player) => ({
+      ...player,
+      injured: false,
+      yellowCards: 0,
+      redCards: 0,
+      x: 0,
+      y: 0,
+    }));
   };
 
   const handleTeamNameChange = (team, value) => {
@@ -514,24 +491,29 @@ function App() {
 
   const handleToggleRunning = () => {
     if (!matchState.lineupConfirmed) {
-      setStartMatchMode('default');
-      setStartMatchOpen(true);
+      handleOpenStartMatch();
       return;
     }
 
-    updateMatchState((currentState) => ({
-      ...currentState,
-      isRunning: !currentState.isRunning,
-      events: [
-        buildEvent('info', currentState.isRunning ? 'Partido pausado' : 'Partido reanudado'),
-        ...currentState.events,
-      ].slice(0, 25),
-    }));
+    updateMatchState((currentState) => {
+      if (currentState.isRunning) {
+        return currentState;
+      }
+
+      return {
+        ...currentState,
+        isRunning: true,
+        events: [
+          buildEvent('info', currentState.elapsedSeconds > 0 ? 'Partido reanudado' : 'Partido iniciado'),
+          ...currentState.events,
+        ].slice(0, 25),
+      };
+    });
   };
 
   const handleOpenStartMatch = () => {
-    setStartMatchOpen(true);
-    setStartMatchMode('default');
+    setStartMatchOpen(false);
+    setActiveSection('calendar');
   };
 
   const handlePause = () => {
@@ -552,14 +534,7 @@ function App() {
   };
 
   const handleCreateInstantMatch = ({ local, visitor, clubSide }) => {
-    const allPlayers = [...matchState.roster.local, ...matchState.roster.bench].map((player) => ({
-      ...player,
-      injured: false,
-      yellowCards: 0,
-      redCards: 0,
-      x: 0,
-      y: 0,
-    }));
+    const allPlayers = getAvailablePlayers();
 
     updateMatchState((currentState) => ({
       ...currentState,
@@ -587,6 +562,7 @@ function App() {
 
   const handleReset = () => {
     const resetState = createEmptyMatchState();
+    const availablePlayers = getAvailablePlayers();
     resetState.teams = { local: '', visitor: '' };
     resetState.clubSide = 'local';
     resetState.appLanguage = matchState.appLanguage;
@@ -598,16 +574,22 @@ function App() {
     resetState.lineupConfirmed = false;
     resetState.roster = {
       local: [],
-      bench: [],
+      bench: availablePlayers,
       visitor: [],
-      visitorBench: [],
+      visitorBench: cloneVisitorBenchPlayers(availablePlayers),
     };
+    resetState.scores = { local: 0, visitor: 0 };
+    resetState.elapsedSeconds = 0;
+    resetState.isRunning = false;
     resetState.ball = { x: 50, y: 50 };
     resetState.events = [buildEvent('reset', 'Marcador reiniciado')];
-    setMatchState(resetState);
+    updateMatchState(() => resetState);
+    setActiveCalendarMatchId(null);
+    setEditingHistoryId(null);
     setLineupSelectionOpen(false);
-    setStartMatchMode('fresh');
-    setStartMatchOpen(true);
+    setStartMatchMode('default');
+    setStartMatchOpen(false);
+    setActiveSection('live');
     setHalfTimeNoticeShown(false);
     setFullTimeNoticeShown(false);
   };
@@ -665,14 +647,7 @@ function App() {
 
   const handleSelectCalendarMatch = (match) => {
     setActiveCalendarMatchId(match.id);
-    const allPlayers = [...matchState.roster.local, ...matchState.roster.bench].map((player) => ({
-      ...player,
-      injured: false,
-      yellowCards: 0,
-      redCards: 0,
-      x: 0,
-      y: 0,
-    }));
+    const allPlayers = getAvailablePlayers();
     const isClubVisitor = match.clubSide
       ? match.clubSide === 'visitor'
       : match.visitor.trim().toUpperCase() === CLUB_NAME;
@@ -731,15 +706,6 @@ function App() {
     };
 
     updateMatchState((currentState) => {
-      const allPlayers = [...currentState.roster.local, ...currentState.roster.bench].map((player) => ({
-        ...player,
-        injured: false,
-        yellowCards: 0,
-        redCards: 0,
-        x: 0,
-        y: 0,
-      }));
-
       return {
         ...currentState,
         teams: { local: '', visitor: '' },
@@ -750,9 +716,9 @@ function App() {
         lineupConfirmed: false,
         roster: {
           local: [],
-          bench: allPlayers,
+          bench: [],
           visitor: [],
-          visitorBench: cloneVisitorBenchPlayers(allPlayers),
+          visitorBench: [],
         },
         ball: { x: 50, y: 50 },
         history: editingHistoryId
@@ -836,7 +802,7 @@ function App() {
       return {
         ...currentState,
         lineupConfirmed: true,
-        isRunning: true,
+        isRunning: false,
         roster: {
           local: selectedPlayers.map((player, index) => ({
             ...player,

@@ -35,7 +35,7 @@ export default function ControlPanel({
         ) : (
           <>
             <button type="button" className={buttonBaseClass} onClick={onToggleRunning}>
-              {isRunning ? '▶️ En curso' : elapsedSeconds > 0 ? '▶️ Continuar' : '▶️ Iniciar'}
+              {isRunning ? '▶️ En curso' : elapsedSeconds > 0 ? '▶️ Continuar' : '▶️ Iniciar partido'}
             </button>
             <button type="button" className={`${buttonBaseClass} pause-button`} onClick={onPause} disabled={!isRunning}>
               ⏸️ Pausar

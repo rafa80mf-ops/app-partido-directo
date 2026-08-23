@@ -188,7 +188,7 @@ function defaultPlayerName(player, fallbackNumber = 1) {
 }
 
 function isNamedPlayer(player) {
-  return Boolean(player?.name?.trim()) && !/^Suplente\s+\d+$/i.test(player.name.trim());
+  return Boolean(player?.name?.trim()) && !/^(Suplente\s+\d+|Portera|Defensa|Media|Medio|Delantera)$/i.test(player.name.trim());
 }
 
 function loadRosterBackup() {
