@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { translateUiText } from '../i18n/uiTranslator';
+import FootballBall from './FootballBall';
 
 function formatMinutes(seconds) {
   return Math.floor((Number(seconds) || 0) / 60);
@@ -42,7 +44,7 @@ function buildPlayerStats(matches) {
 
 function getEventIcon(eventType) {
   return {
-    goal: '⚽',
+    goal: null,
     assist: '🅰️',
     yellow: '🟨',
     red: '🟥',
@@ -55,7 +57,71 @@ function formatReportEventLabel(event) {
   return event.team === 'visitor' ? event.label.replace(/^#(\d+)/, '$1') : event.label;
 }
 
-export default function HistoryDashboard({ matches, onEditMatch, onDeleteMatch, teamAppearance }) {
+function formatTechnicalStaffRole(role) {
+  return {
+    ENTRENADOR: 'Entrenador/a',
+    SEGUNDO_ENTRENADOR: 'Segundo entrenador/a',
+    DELEGADO: 'Delegado/a',
+    FISIO: 'Fisio',
+    AUXILIAR: 'Auxiliar',
+  }[String(role || '').toUpperCase()] || 'Auxiliar';
+}
+
+function normalizeTechnicalStaffForReport(rawTechnicalStaff) {
+  if (Array.isArray(rawTechnicalStaff)) {
+    return rawTechnicalStaff
+      .map((member) => {
+        if (!member || typeof member !== 'object') {
+          return null;
+        }
+
+        const name = typeof member.name === 'string' ? member.name.trim() : '';
+        if (!name) {
+          return null;
+        }
+
+        return {
+          id: member.id || `${member.role || 'AUXILIAR'}-${name}`,
+          role: formatTechnicalStaffRole(member.role),
+          name,
+        };
+      })
+      .filter(Boolean);
+  }
+
+  if (typeof rawTechnicalStaff === 'string') {
+    return rawTechnicalStaff
+      .split('\n')
+      .map((line, index) => {
+        const trimmedLine = line.trim();
+        if (!trimmedLine) {
+          return null;
+        }
+
+        const [rawRole, ...rawName] = trimmedLine.split(':');
+        const maybeName = rawName.join(':').trim();
+
+        if (maybeName) {
+          return {
+            id: `staff-${index}`,
+            role: rawRole.trim(),
+            name: maybeName,
+          };
+        }
+
+        return {
+          id: `staff-${index}`,
+          role: 'Auxiliar',
+          name: trimmedLine,
+        };
+      })
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
+export default function HistoryDashboard({ matches, onEditMatch, onDeleteMatch, teamAppearance, appLanguage = 'es' }) {
   const [view, setView] = useState('reports');
   const [selectedMatchId, setSelectedMatchId] = useState(matches.at(-1)?.id || null);
   const [openCompetition, setOpenCompetition] = useState(() => (
@@ -65,6 +131,7 @@ export default function HistoryDashboard({ matches, onEditMatch, onDeleteMatch, 
   const selectedMatch = matches.find((match) => match.id === selectedMatchId) || null;
   const selectedAppearance = selectedMatch?.teamAppearance || teamAppearance;
   const selectedEvents = selectedMatch?.events || [];
+  const selectedTechnicalStaff = normalizeTechnicalStaffForReport(selectedMatch?.technicalStaff);
   const matchesByType = useMemo(() => ({
     Liga: [...matches].filter((match) => (match.type || 'Liga') === 'Liga').reverse(),
     Amistoso: [...matches].filter((match) => (match.type || 'Liga') === 'Amistoso').reverse(),
@@ -92,9 +159,15 @@ export default function HistoryDashboard({ matches, onEditMatch, onDeleteMatch, 
             ))}
           </aside>
           {selectedMatch && <article className="match-report">
-            <div className="match-report-heading"><div><span className="report-competition-badge">{selectedMatch.type === 'Amistoso' ? <><img src="/club-crest.svg" alt="" /> Amistoso</> : <><img src="/fcf-logo.svg" alt="" /> Liga</>}</span><h2>{selectedMatch.teams.local} {selectedMatch.scores.local} - {selectedMatch.scores.visitor} {selectedMatch.teams.visitor}</h2><p>🗓️ {selectedMatch.finishedAt}</p></div><div className="match-report-actions"><button type="button" className="icon-report-button edit-report-button" onClick={() => onEditMatch(selectedMatch)} title="Modificar acta" aria-label="Modificar acta">✎</button><button type="button" className="icon-report-button delete-report-button" onClick={() => { if (window.confirm('¿Borrar esta acta?')) onDeleteMatch(selectedMatch.id); }} title="Borrar acta" aria-label="Borrar acta">⌫</button></div></div>
+            <div className="match-report-heading"><div><span className="report-competition-badge">{selectedMatch.type === 'Amistoso' ? <><img src="/club-crest.svg" alt="" /> Amistoso</> : <><img src="/fcf-logo.svg" alt="" /> Liga</>}</span><h2>{selectedMatch.teams.local} {selectedMatch.scores.local} - {selectedMatch.scores.visitor} {selectedMatch.teams.visitor}</h2><p>🗓️ {selectedMatch.finishedAt}</p></div><div className="match-report-actions"><button type="button" className="icon-report-button edit-report-button" onClick={() => onEditMatch(selectedMatch)} title="Modificar acta" aria-label="Modificar acta">✎</button><button type="button" className="icon-report-button delete-report-button" onClick={() => { if (window.confirm(translateUiText('¿Borrar esta acta?', appLanguage))) onDeleteMatch(selectedMatch.id); }} title="Borrar acta" aria-label="Borrar acta">⌫</button></div></div>
+            {selectedTechnicalStaff.length > 0 && <>
+              <h3 className="report-title">Cuerpo técnico</h3>
+              <ul className="report-staff-list">
+                {selectedTechnicalStaff.map((member) => <li key={member.id}><strong>{member.role}:</strong> <span>{member.name}</span></li>)}
+              </ul>
+            </>}
             <h3 className="report-title">Acta</h3>
-            {selectedEvents.length === 0 ? <p className="empty-state">No hay acciones registradas.</p> : <ol className="report-event-list">{selectedEvents.slice().reverse().map((event) => <li key={event.id} className={`${event.team === 'visitor' ? 'visitor-event' : 'local-event'} ${event.type === 'yellow' ? 'yellow-card-event' : ''}`}><span className={`report-event-icon ${event.type === 'yellow' ? 'yellow-card-icon' : ''} ${event.team === 'visitor' ? 'visitor-action-icon' : 'local-action-icon'} ${event.team === 'local' && selectedAppearance?.shape === 'shirt' ? 'appearance-shirt' : ''}`} style={event.team === 'local' ? { '--team-color': selectedAppearance?.color || '#facc15' } : undefined} aria-hidden="true">{getEventIcon(event.type)}</span><span>{formatReportEventLabel(event)}</span></li>)}</ol>}
+            {selectedEvents.length === 0 ? <p className="empty-state">No hay acciones registradas.</p> : <ol className="report-event-list">{selectedEvents.slice().reverse().map((event) => <li key={event.id} className={`${event.team === 'visitor' ? 'visitor-event' : 'local-event'} ${event.type === 'yellow' ? 'yellow-card-event' : ''}`}><span className={`report-event-icon ${event.type === 'yellow' ? 'yellow-card-icon' : ''} ${event.team === 'visitor' ? 'visitor-action-icon' : 'local-action-icon'} ${event.team === 'local' && selectedAppearance?.shape === 'shirt' ? 'appearance-shirt' : ''}`} style={event.team === 'local' ? { '--team-color': selectedAppearance?.color || '#facc15' } : undefined} aria-hidden="true">{event.type === 'goal' ? <FootballBall className="event-ball" /> : getEventIcon(event.type)}</span><span>{formatReportEventLabel(event)}</span></li>)}</ol>}
           </article>}
         </div>
       ) : (

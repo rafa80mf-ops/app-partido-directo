@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { CLUB_NAME } from '../data/storage';
 
 export default function StartMatchModal({ matches, isFreshStart = false, onSelectCalendarMatch, onCreateInstant, onClose }) {
-  const [instantOpen, setInstantOpen] = useState(isFreshStart);
+  const [instantOpen, setInstantOpen] = useState(isFreshStart || matches.length === 0);
   const [clubSide, setClubSide] = useState('local');
   const [rival, setRival] = useState('');
 

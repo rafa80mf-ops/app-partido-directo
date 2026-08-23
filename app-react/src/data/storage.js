@@ -6,7 +6,15 @@ export const DEFAULT_CLUB_CREST = '/club-crest.svg';
 export const DEFAULT_LEAGUE_NAME = 'Liga';
 export const DEFAULT_LEAGUE_LOGO = '/fcf-logo.svg';
 export const DEFAULT_TEAM_APPEARANCE = { color: '#facc15', secondaryColor: '#111827', shape: 'ball' };
+export const DEFAULT_APP_LANGUAGE = 'es';
 const BLOCKED_PLAYER_NUMBERS = new Set([28, 29, 30]);
+
+const SUPPORTED_APP_LANGUAGES = new Set(['es', 'en', 'fr', 'pt', 'de', 'it']);
+
+function normalizeAppLanguage(language) {
+  const safeLanguage = typeof language === 'string' ? language.trim().toLowerCase() : '';
+  return SUPPORTED_APP_LANGUAGES.has(safeLanguage) ? safeLanguage : DEFAULT_APP_LANGUAGE;
+}
 
 function getDefaultSeason() {
   const currentYear = new Date().getFullYear();
@@ -21,6 +29,109 @@ function normalizeCalendarMatches(matches) {
     type: match.type || 'Liga',
     time: match.time || '',
   })).sort((firstMatch, secondMatch) => `${firstMatch.date}T${firstMatch.time}`.localeCompare(`${secondMatch.date}T${secondMatch.time}`));
+}
+
+const TECHNICAL_STAFF_ROLES = new Set([
+  'ENTRENADOR',
+  'SEGUNDO_ENTRENADOR',
+  'DELEGADO',
+  'FISIO',
+  'AUXILIAR',
+]);
+
+function normalizeTechnicalStaffRole(role) {
+  const normalizedRole = typeof role === 'string' ? role.trim().toUpperCase() : '';
+  if (TECHNICAL_STAFF_ROLES.has(normalizedRole)) {
+    return normalizedRole;
+  }
+
+  return 'AUXILIAR';
+}
+
+function normalizeTechnicalStaffMember(member, fallbackIndex = 0) {
+  if (!member || typeof member !== 'object') {
+    return null;
+  }
+
+  const name = typeof member.name === 'string' ? member.name.trim() : '';
+  if (!name) {
+    return null;
+  }
+
+  return {
+    id: typeof member.id === 'string' && member.id.trim() ? member.id.trim() : `staff-${fallbackIndex}-${name.toLowerCase().replace(/\s+/g, '-')}`,
+    role: normalizeTechnicalStaffRole(member.role),
+    name,
+  };
+}
+
+function normalizeTechnicalStaff(rawValue) {
+  if (typeof rawValue === 'string') {
+    return rawValue
+      .split('\n')
+      .map((line, index) => {
+        const trimmedLine = line.trim();
+        if (!trimmedLine) {
+          return null;
+        }
+
+        const [rawRole, ...rest] = trimmedLine.split(':');
+        const maybeName = rest.join(':').trim();
+        const hasRoleAndName = Boolean(rawRole?.trim()) && Boolean(maybeName);
+
+        return normalizeTechnicalStaffMember({
+          role: hasRoleAndName ? rawRole : 'AUXILIAR',
+          name: hasRoleAndName ? maybeName : trimmedLine,
+          id: `staff-${index}`,
+        }, index);
+      })
+      .filter(Boolean)
+      .slice(0, 20);
+  }
+
+  if (Array.isArray(rawValue)) {
+    return rawValue
+      .map((member, index) => {
+        if (typeof member === 'string') {
+          return normalizeTechnicalStaffMember({ role: 'AUXILIAR', name: member, id: `staff-${index}` }, index);
+        }
+
+        return normalizeTechnicalStaffMember(member, index);
+      })
+      .filter(Boolean)
+      .slice(0, 20);
+  }
+
+  return [];
+}
+
+function normalizeTrainingSessions(rawValue) {
+  if (!Array.isArray(rawValue)) {
+    return [];
+  }
+
+  return rawValue
+    .map((training, index) => {
+      if (!training || typeof training !== 'object' || !training.date) {
+        return null;
+      }
+
+      const attendance = training.attendance && typeof training.attendance === 'object'
+        ? Object.fromEntries(Object.entries(training.attendance).map(([playerId, status]) => [
+            playerId,
+            status === 'present' ? 'present' : 'absent',
+          ]))
+        : {};
+
+      return {
+        id: typeof training.id === 'string' && training.id.trim() ? training.id : `training-${index}-${training.date}`,
+        date: String(training.date),
+        number: Math.max(1, Number(training.number) || 1),
+        attendance,
+      };
+    })
+    .filter(Boolean)
+    .sort((firstTraining, secondTraining) => secondTraining.date.localeCompare(firstTraining.date));
 }
 
 export const DB_SCHEMA = {
@@ -222,12 +333,15 @@ export function createEmptyMatchState() {
     clubCrest: DEFAULT_CLUB_CREST,
     leagueName: DEFAULT_LEAGUE_NAME,
     leagueLogo: DEFAULT_LEAGUE_LOGO,
+    appLanguage: DEFAULT_APP_LANGUAGE,
     teamAppearance: { ...DEFAULT_TEAM_APPEARANCE },
     clubSide: 'local',
     calendar: [],
     currentSeason: getDefaultSeason(),
     previousSeasons: [],
     history: [],
+    technicalStaff: [],
+    trainingSessions: [],
     scores: {
       local: 0,
       visitor: 0,
@@ -279,6 +393,7 @@ export function normalizeMatchState(rawState) {
     leagueLogo: typeof rawState.leagueLogo === 'string' && rawState.leagueLogo.trim()
       ? rawState.leagueLogo.trim()
       : DEFAULT_LEAGUE_LOGO,
+    appLanguage: normalizeAppLanguage(rawState.appLanguage),
     teamAppearance: {
       color: typeof rawState.teamAppearance?.color === 'string' && rawState.teamAppearance.color.trim()
         ? rawState.teamAppearance.color
@@ -299,6 +414,8 @@ export function normalizeMatchState(rawState) {
       matches: normalizeCalendarMatches(season.matches),
     })).sort((firstSeason, secondSeason) => secondSeason.name.localeCompare(firstSeason.name)),
     history: Array.isArray(rawState.history) ? rawState.history : [],
+    technicalStaff: normalizeTechnicalStaff(rawState.technicalStaff),
+    trainingSessions: normalizeTrainingSessions(rawState.trainingSessions),
     scores: {
       local: Number(rawState.scores?.local) || 0,
       visitor: Number(rawState.scores?.visitor) || 0,

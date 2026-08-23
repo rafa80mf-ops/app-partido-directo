@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import './App.css';
 import MatchHeader from './components/MatchHeader';
 import ControlPanel from './components/ControlPanel';
@@ -17,9 +17,11 @@ import HistoryDashboard from './components/HistoryDashboard';
 import PlayerActionMenuModal from './components/PlayerActionMenuModal';
 import StartMatchModal from './components/StartMatchModal';
 import TacticsBoardModal from './components/TacticsBoardModal';
+import TrainingDashboard from './components/TrainingDashboard';
 import {
   CLUB_NAME,
   createEmptyMatchState,
+  DEFAULT_APP_LANGUAGE,
   DEFAULT_LEAGUE_LOGO,
   DEFAULT_TEAM_APPEARANCE,
   loadMatchState,
@@ -28,6 +30,7 @@ import {
   saveMatchState,
 } from './data/storage';
 import { loadMatchSnapshot, saveMatchSnapshot } from './data/localDb';
+import { translateUiText, translateUiTree } from './i18n/uiTranslator';
 
 function buildEvent(type, label, team = 'neutral', players = []) {
   return {
@@ -76,7 +79,124 @@ function formatPlayerEventLabel(player, rosterTeam) {
   return rosterTeam === 'visitor' ? `${player.number}` : player.name;
 }
 
+function getLanguageLocale(languageCode) {
+  return {
+    es: 'es-ES',
+    en: 'en-US',
+    fr: 'fr-FR',
+    pt: 'pt-PT',
+    de: 'de-DE',
+    it: 'it-IT',
+  }[languageCode] || 'es-ES';
+}
+
+const DOCUMENT_TITLES = {
+  es: 'Partido directo',
+  en: 'Live match',
+  fr: 'Match en direct',
+  pt: 'Partida ao vivo',
+  de: 'Live-Spiel',
+  it: 'Partita dal vivo',
+};
+
+const UI_COPY = {
+  es: {
+    navBrand: 'Partido directo',
+    navLive: 'En directo',
+    navTeam: 'Mi equipo',
+    navTactics: 'Pizarra tactica',
+    navCalendar: 'Calendario',
+    navHistory: 'Historial',
+    navTraining: 'Entrenos',
+    navLanguages: 'Idiomas',
+    languagesTitle: 'Idiomas',
+    languagesSubtitle: 'Selecciona el idioma base de la aplicacion para despliegue internacional.',
+    languagesCurrent: 'Idioma actual',
+    languagesRoadmap: 'Esta seleccion deja la app preparada para ampliar traducciones en todos los modulos.',
+  },
+  en: {
+    navBrand: 'Live match',
+    navLive: 'Live',
+    navTeam: 'My team',
+    navTactics: 'Tactics board',
+    navCalendar: 'Calendar',
+    navHistory: 'History',
+    navTraining: 'Training',
+    navLanguages: 'Languages',
+    languagesTitle: 'Languages',
+    languagesSubtitle: 'Select the base app language for international rollout.',
+    languagesCurrent: 'Current language',
+    languagesRoadmap: 'This setting prepares the app to expand translations across all modules.',
+  },
+  fr: {
+    navBrand: 'Match en direct',
+    navLive: 'Direct',
+    navTeam: 'Mon equipe',
+    navTactics: 'Tableau tactique',
+    navCalendar: 'Calendrier',
+    navHistory: 'Historique',
+    navTraining: 'Entrainements',
+    navLanguages: 'Langues',
+    languagesTitle: 'Langues',
+    languagesSubtitle: "Selectionnez la langue principale de l'application pour le deploiement international.",
+    languagesCurrent: 'Langue actuelle',
+    languagesRoadmap: 'Ce reglage prepare l application a etendre les traductions dans tous les modules.',
+  },
+  pt: {
+    navBrand: 'Partida ao vivo',
+    navLive: 'Ao vivo',
+    navTeam: 'Minha equipe',
+    navTactics: 'Quadro tatico',
+    navCalendar: 'Calendario',
+    navHistory: 'Historico',
+    navTraining: 'Treinos',
+    navLanguages: 'Idiomas',
+    languagesTitle: 'Idiomas',
+    languagesSubtitle: 'Selecione o idioma base do app para expansao internacional.',
+    languagesCurrent: 'Idioma atual',
+    languagesRoadmap: 'Esta configuracao prepara o app para ampliar traducoes em todos os modulos.',
+  },
+  de: {
+    navBrand: 'Live-Spiel',
+    navLive: 'Live',
+    navTeam: 'Mein Team',
+    navTactics: 'Taktiktafel',
+    navCalendar: 'Kalender',
+    navHistory: 'Historie',
+    navTraining: 'Training',
+    navLanguages: 'Sprachen',
+    languagesTitle: 'Sprachen',
+    languagesSubtitle: 'Wahle die Basis-App-Sprache fur den internationalen Rollout.',
+    languagesCurrent: 'Aktuelle Sprache',
+    languagesRoadmap: 'Diese Auswahl bereitet die App auf erweiterte Ubersetzungen in allen Modulen vor.',
+  },
+  it: {
+    navBrand: 'Partita dal vivo',
+    navLive: 'Live',
+    navTeam: 'La mia squadra',
+    navTactics: 'Lavagna tattica',
+    navCalendar: 'Calendario',
+    navHistory: 'Storico',
+    navTraining: 'Allenamenti',
+    navLanguages: 'Lingue',
+    languagesTitle: 'Lingue',
+    languagesSubtitle: 'Seleziona la lingua base dell app per la distribuzione internazionale.',
+    languagesCurrent: 'Lingua attuale',
+    languagesRoadmap: 'Questa scelta prepara l app ad ampliare le traduzioni in tutti i moduli.',
+  },
+};
+
+const LANGUAGE_OPTIONS = [
+  { code: 'es', label: 'Espanol', nativeLabel: 'Espanol', region: 'Espana y LATAM' },
+  { code: 'en', label: 'English', nativeLabel: 'English', region: 'Global' },
+  { code: 'fr', label: 'Francais', nativeLabel: 'Francais', region: 'France, Belgique, Canada' },
+  { code: 'pt', label: 'Portugues', nativeLabel: 'Portugues', region: 'Portugal y Brasil' },
+  { code: 'de', label: 'Deutsch', nativeLabel: 'Deutsch', region: 'Alemania, Austria, Suiza' },
+  { code: 'it', label: 'Italiano', nativeLabel: 'Italiano', region: 'Italia' },
+];
+
 function App() {
+  const appRootRef = useRef(null);
   const [matchState, setMatchState] = useState(() => loadMatchState());
   const [injuredPlayerModal, setInjuredPlayerModal] = useState(null);
   const [selectingInjured, setSelectingInjured] = useState(false);
@@ -102,6 +222,49 @@ function App() {
   const [equipmentOpen, setEquipmentOpen] = useState(false);
   const [equipmentDraft, setEquipmentDraft] = useState(null);
   const [activeColorSlot, setActiveColorSlot] = useState('color');
+  const uiCopy = UI_COPY[matchState.appLanguage] || UI_COPY[DEFAULT_APP_LANGUAGE];
+
+  useEffect(() => {
+    const language = matchState.appLanguage || DEFAULT_APP_LANGUAGE;
+    document.documentElement.lang = language;
+    document.title = DOCUMENT_TITLES[language] || DOCUMENT_TITLES[DEFAULT_APP_LANGUAGE];
+  }, [matchState.appLanguage]);
+
+  useEffect(() => {
+    const rootElement = appRootRef.current;
+    if (!rootElement) {
+      return undefined;
+    }
+
+    let isTranslating = false;
+    const applyTranslations = () => {
+      if (isTranslating) {
+        return;
+      }
+
+      isTranslating = true;
+      translateUiTree(rootElement, matchState.appLanguage || DEFAULT_APP_LANGUAGE);
+      isTranslating = false;
+    };
+
+    applyTranslations();
+
+    const observer = new MutationObserver(() => {
+      applyTranslations();
+    });
+
+    observer.observe(rootElement, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ['placeholder', 'title', 'aria-label'],
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [matchState.appLanguage]);
 
   useEffect(() => {
     let isMounted = true;
@@ -159,9 +322,26 @@ function App() {
       return undefined;
     }
 
+    const startedAt = Date.now();
+    const initialElapsedSeconds = matchState.elapsedSeconds;
+    const timer = window.setInterval(() => {
+      const elapsedSeconds = initialElapsedSeconds + Math.floor((Date.now() - startedAt) / 1000);
+      setMatchState((currentState) => currentState.isRunning
+        ? { ...currentState, elapsedSeconds, updatedAt: new Date().toISOString() }
+        : currentState);
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [matchState.isRunning]);
+
+  useEffect(() => {
+    if (!matchState.isRunning) {
+      return;
+    }
+
     if (matchState.elapsedSeconds >= 47 * 60 && !halfTimeNoticeShown) {
       setHalfTimeNoticeShown(true);
-      const isHalfTime = window.confirm('Han pasado 47 minutos. ¿Ha terminado la primera parte?');
+      const isHalfTime = window.confirm(translateUiText('Han pasado 47 minutos. ¿Ha terminado la primera parte?', matchState.appLanguage));
       if (isHalfTime) {
         updateMatchState((currentState) => ({
           ...currentState,
@@ -178,16 +358,6 @@ function App() {
       setFullTimeNoticeShown(true);
       setFinalizeConfirmOpen(true);
     }
-
-    const timer = window.setInterval(() => {
-      setMatchState((currentState) => ({
-        ...currentState,
-        elapsedSeconds: currentState.elapsedSeconds + 1,
-        updatedAt: new Date().toISOString(),
-      }));
-    }, 1000);
-
-    return () => window.clearInterval(timer);
   }, [matchState.isRunning, matchState.elapsedSeconds, halfTimeNoticeShown, fullTimeNoticeShown]);
 
   useEffect(() => {
@@ -248,6 +418,70 @@ function App() {
     updateMatchState((currentState) => ({ ...currentState, leagueLogo }));
   };
 
+  const handleLanguageChange = (languageCode) => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      appLanguage: languageCode,
+    }));
+  };
+
+  const handleSaveTraining = (training) => {
+    updateMatchState((currentState) => {
+      const nextTraining = {
+        ...training,
+        id: training.id || crypto.randomUUID(),
+        number: Math.max(1, Number(training.number) || 1),
+      };
+      const currentTrainingSessions = Array.isArray(currentState.trainingSessions) ? currentState.trainingSessions : [];
+      const trainingSessions = [
+        ...currentTrainingSessions.filter((item) => item.id !== nextTraining.id && !(item.date === nextTraining.date && item.number === nextTraining.number)),
+        nextTraining,
+      ].sort((firstTraining, secondTraining) => secondTraining.date.localeCompare(firstTraining.date));
+
+      return {
+        ...currentState,
+        trainingSessions,
+      };
+    });
+  };
+
+  const handleDeleteTraining = (trainingId) => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      trainingSessions: (Array.isArray(currentState.trainingSessions) ? currentState.trainingSessions : [])
+        .filter((training) => training.id !== trainingId),
+    }));
+  };
+
+  const handleUpdateTechnicalStaff = (technicalStaff) => {
+    const normalizedTechnicalStaff = Array.isArray(technicalStaff)
+      ? technicalStaff
+        .map((member, index) => {
+          if (!member || typeof member !== 'object') {
+            return null;
+          }
+
+          const name = typeof member.name === 'string' ? member.name.trim() : '';
+          if (!name) {
+            return null;
+          }
+
+          return {
+            id: typeof member.id === 'string' && member.id.trim() ? member.id.trim() : `staff-${index}`,
+            role: typeof member.role === 'string' && member.role.trim() ? member.role.trim() : 'AUXILIAR',
+            name,
+          };
+        })
+        .filter(Boolean)
+        .slice(0, 20)
+      : [];
+
+    updateMatchState((currentState) => ({
+      ...currentState,
+      technicalStaff: normalizedTechnicalStaff,
+    }));
+  };
+
   const handleLeagueLogoUpload = (event) => {
     const [file] = event.target.files || [];
     if (!file || !file.type.startsWith('image/')) return;
@@ -296,10 +530,8 @@ function App() {
   };
 
   const handleOpenStartMatch = () => {
-    setStartMatchOpen(false);
+    setStartMatchOpen(true);
     setStartMatchMode('default');
-    setCalendarOpen(true);
-    setActiveSection('calendar');
   };
 
   const handlePause = () => {
@@ -357,10 +589,12 @@ function App() {
     const resetState = createEmptyMatchState();
     resetState.teams = { local: '', visitor: '' };
     resetState.clubSide = 'local';
+    resetState.appLanguage = matchState.appLanguage;
     resetState.calendar = [...matchState.calendar];
     resetState.currentSeason = matchState.currentSeason;
     resetState.previousSeasons = [...matchState.previousSeasons];
     resetState.history = [...matchState.history];
+    resetState.trainingSessions = Array.isArray(matchState.trainingSessions) ? [...matchState.trainingSessions] : [];
     resetState.lineupConfirmed = false;
     resetState.roster = {
       local: [],
@@ -480,7 +714,7 @@ function App() {
     const historyMatch = matchState.history.find((match) => match.id === editingHistoryId);
     const finishedMatch = {
       id: editingHistoryId || crypto.randomUUID(),
-      finishedAt: new Date().toLocaleString('es-ES'),
+      finishedAt: new Date().toLocaleString(getLanguageLocale(matchState.appLanguage)),
       teams: { ...matchState.teams },
       scores: { ...matchState.scores },
       elapsedSeconds: matchState.elapsedSeconds,
@@ -492,6 +726,7 @@ function App() {
         local: [...matchState.roster.local],
         bench: [...matchState.roster.bench],
       },
+      technicalStaff: (matchState.technicalStaff || []).map((member) => ({ ...member })),
       lineupConfirmed: matchState.lineupConfirmed,
     };
 
@@ -534,6 +769,7 @@ function App() {
     setLineupSelectionOpen(false);
     setStartMatchMode('default');
     setStartMatchOpen(false);
+    setActiveSection('live');
     setHalfTimeNoticeShown(false);
     setFullTimeNoticeShown(false);
     setFinalizeConfirmOpen(false);
@@ -600,6 +836,7 @@ function App() {
       return {
         ...currentState,
         lineupConfirmed: true,
+        isRunning: true,
         roster: {
           local: selectedPlayers.map((player, index) => ({
             ...player,
@@ -1023,7 +1260,7 @@ function App() {
     }
 
     if (actionType === 'edit-number') {
-      const nextNumber = Number(window.prompt(`Nuevo dorsal para ${player.name}`, player.number));
+      const nextNumber = Number(window.prompt(translateUiText(`Nuevo dorsal para ${player.name}`, matchState.appLanguage), player.number));
       if (Number.isFinite(nextNumber) && nextNumber > 0) {
         updateMatchState((currentState) => ({
           ...currentState,
@@ -1302,15 +1539,17 @@ function App() {
   };
 
   return (
-    <main className="app-shell">
+    <main className="app-shell" ref={appRootRef}>
       <div className="app-frame">
         <nav className="app-navigation" aria-label="Secciones principales">
-          <div className="app-navigation-brand">Partido directo</div>
-          <button type="button" className={`app-navigation-item ${activeSection === 'live' ? 'active' : ''}`} onClick={() => setActiveSection('live')}><span aria-hidden="true">●</span>En directo</button>
-          <button type="button" className={`app-navigation-item ${activeSection === 'team' ? 'active' : ''}`} onClick={() => setActiveSection('team')}><span aria-hidden="true">♙</span>Mi equipo</button>
-          <button type="button" className={`app-navigation-item ${activeSection === 'tactics' ? 'active' : ''}`} onClick={() => setActiveSection('tactics')}><span aria-hidden="true">⌘</span>Pizarra táctica</button>
-          <button type="button" className={`app-navigation-item ${activeSection === 'calendar' ? 'active' : ''}`} onClick={() => setActiveSection('calendar')}><span aria-hidden="true">□</span>Calendario</button>
-          <button type="button" className={`app-navigation-item ${activeSection === 'history' ? 'active' : ''}`} onClick={() => setActiveSection('history')}><span aria-hidden="true">≡</span>Historial</button>
+          <div className="app-navigation-brand">{uiCopy.navBrand}</div>
+          <button key="live" type="button" className={`app-navigation-item ${activeSection === 'live' ? 'active' : ''}`} onClick={() => setActiveSection('live')}><span aria-hidden="true">●</span>{uiCopy.navLive}</button>
+          <button key="team" type="button" className={`app-navigation-item ${activeSection === 'team' ? 'active' : ''}`} onClick={() => setActiveSection('team')}><span aria-hidden="true">♙</span>{uiCopy.navTeam}</button>
+          <button key="tactics" type="button" className={`app-navigation-item ${activeSection === 'tactics' ? 'active' : ''}`} onClick={() => setActiveSection('tactics')}><span aria-hidden="true">⌘</span>{uiCopy.navTactics}</button>
+          <button key="calendar" type="button" className={`app-navigation-item ${activeSection === 'calendar' ? 'active' : ''}`} onClick={() => setActiveSection('calendar')}><span aria-hidden="true">□</span>{uiCopy.navCalendar}</button>
+          <button key="history" type="button" className={`app-navigation-item ${activeSection === 'history' ? 'active' : ''}`} onClick={() => setActiveSection('history')}><span aria-hidden="true">≡</span>{uiCopy.navHistory}</button>
+          <button key="training" type="button" className={`app-navigation-item ${activeSection === 'training' ? 'active' : ''}`} onClick={() => setActiveSection('training')}><span aria-hidden="true">▦</span>{uiCopy.navTraining}</button>
+          <button key="languages" type="button" className={`app-navigation-item ${activeSection === 'languages' ? 'active' : ''}`} onClick={() => setActiveSection('languages')}><span aria-hidden="true">🌐</span>{uiCopy.navLanguages}</button>
         </nav>
 
         <div className="app-workspace">
@@ -1433,9 +1672,11 @@ function App() {
               <RosterPanel
                 teams={matchState.teams}
                 roster={matchState.roster}
+                technicalStaff={matchState.technicalStaff}
                 onAddPlayer={handleAddPlayer}
                 onUpdatePlayer={handleUpdatePlayer}
                 onMovePlayer={handleMovePlayer}
+                onUpdateTechnicalStaff={handleUpdateTechnicalStaff}
                 onSelectLineup={() => setLineupSelectionOpen(true)}
                 lineupConfirmed={matchState.lineupConfirmed}
                 managementOnly={true}
@@ -1478,7 +1719,47 @@ function App() {
           )}
 
           {activeSection === 'history' && (
-            <HistoryDashboard matches={matchState.history} teamAppearance={matchState.teamAppearance} onEditMatch={handleEditHistoryMatch} onDeleteMatch={handleDeleteHistoryMatch} />
+            <HistoryDashboard matches={matchState.history} teamAppearance={matchState.teamAppearance} appLanguage={matchState.appLanguage} onEditMatch={handleEditHistoryMatch} onDeleteMatch={handleDeleteHistoryMatch} />
+          )}
+
+          {activeSection === 'training' && (
+            <TrainingDashboard
+              roster={matchState.roster}
+              trainingSessions={matchState.trainingSessions}
+              onSaveTraining={handleSaveTraining}
+              onDeleteTraining={handleDeleteTraining}
+              appLanguage={matchState.appLanguage}
+            />
+          )}
+
+          {activeSection === 'languages' && (
+            <section className="languages-view" aria-label="Idiomas de la aplicacion">
+              <header className="section-heading">
+                <div>
+                  <h1>{uiCopy.languagesTitle}</h1>
+                  <p>{uiCopy.languagesSubtitle}</p>
+                </div>
+              </header>
+              <section className="languages-panel" aria-label="Selector de idioma">
+                <p className="languages-current"><strong>{uiCopy.languagesCurrent}:</strong> {(LANGUAGE_OPTIONS.find((option) => option.code === matchState.appLanguage)?.nativeLabel) || 'Espanol'}</p>
+                <div className="languages-grid">
+                  {LANGUAGE_OPTIONS.map((languageOption) => (
+                    <button
+                      key={languageOption.code}
+                      type="button"
+                      className={`language-card ${matchState.appLanguage === languageOption.code ? 'active' : ''}`}
+                      onClick={() => handleLanguageChange(languageOption.code)}
+                      aria-pressed={matchState.appLanguage === languageOption.code}
+                    >
+                      <strong>{languageOption.nativeLabel}</strong>
+                      <small>{languageOption.label}</small>
+                      <span>{languageOption.region}</span>
+                    </button>
+                  ))}
+                </div>
+                <p className="languages-note">{uiCopy.languagesRoadmap}</p>
+              </section>
+            </section>
           )}
         </div>
       </div>

@@ -1,11 +1,53 @@
 import { useState } from 'react';
 
+function formatTechnicalStaffRole(role) {
+  return {
+    ENTRENADOR: 'Entrenador/a',
+    SEGUNDO_ENTRENADOR: 'Segundo entrenador/a',
+    DELEGADO: 'Delegado/a',
+    FISIO: 'Fisio',
+    AUXILIAR: 'Auxiliar',
+  }[String(role || '').toUpperCase()] || 'Auxiliar';
+}
+
+function buildTechnicalStaffLines(rawTechnicalStaff) {
+  if (Array.isArray(rawTechnicalStaff)) {
+    return rawTechnicalStaff
+      .map((member) => {
+        if (!member || typeof member !== 'object') {
+          return '';
+        }
+
+        const name = typeof member.name === 'string' ? member.name.trim() : '';
+        if (!name) {
+          return '';
+        }
+
+        return `${formatTechnicalStaffRole(member.role)}: ${name}`;
+      })
+      .filter(Boolean);
+  }
+
+  if (typeof rawTechnicalStaff === 'string') {
+    return rawTechnicalStaff
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
 export default function HistoryModal({ matches, onEdit, onDelete, onShare, onClose }) {
   const [shareMessage, setShareMessage] = useState('');
   const [openType, setOpenType] = useState('Liga');
 
   const handleShare = async (match) => {
-    const text = `${match.teams.local} ${match.scores.local} - ${match.scores.visitor} ${match.teams.visitor}\nFinalizado: ${match.finishedAt}`;
+    const technicalStaffLines = buildTechnicalStaffLines(match.technicalStaff);
+    const technicalStaffSection = technicalStaffLines.length > 0
+      ? `\n\nCuerpo técnico\n${technicalStaffLines.map((line) => `- ${line}`).join('\n')}`
+      : '';
+    const text = `${match.teams.local} ${match.scores.local} - ${match.scores.visitor} ${match.teams.visitor}\nFinalizado: ${match.finishedAt}${technicalStaffSection}`;
 
     try {
       if (navigator.share) {

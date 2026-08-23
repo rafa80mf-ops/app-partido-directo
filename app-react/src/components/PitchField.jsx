@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import FootballBall from './FootballBall';
 
 export const FORMATION_POSITIONS = {
   '4-4-2': [
@@ -143,16 +144,14 @@ export default function PitchField({ teams, clubSide, roster, ball, onPlayerClic
         {renderTeamPlayers('visitor', visitorPlayers)}
 
         {/* Balón */}
-        <div
+        <FootballBall
           className="pitch-ball"
           style={{
             left: `${ball.x}%`,
             top: `${ball.y}%`,
           }}
           aria-label="Balón"
-        >
-          <span />
-        </div>
+        />
       </div>
 
       <div className="bench-section" aria-label="Banquillos">

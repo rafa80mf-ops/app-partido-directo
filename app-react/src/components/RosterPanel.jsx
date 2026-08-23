@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 const emptyPlayer = {
   number: 1,
@@ -6,6 +6,37 @@ const emptyPlayer = {
   role: 'FWD',
   injured: false,
 };
+
+const technicalStaffRoleOptions = [
+  { value: 'ENTRENADOR', label: 'Entrenador/a' },
+  { value: 'SEGUNDO_ENTRENADOR', label: 'Segundo entrenador/a' },
+  { value: 'DELEGADO', label: 'Delegado/a' },
+  { value: 'FISIO', label: 'Fisio' },
+  { value: 'AUXILIAR', label: 'Auxiliar' },
+];
+
+const emptyTechnicalStaffMember = {
+  name: '',
+  role: 'ENTRENADOR',
+};
+
+function normalizeTechnicalStaffMember(member, index) {
+  if (!member || typeof member !== 'object') {
+    return null;
+  }
+
+  const name = typeof member.name === 'string' ? member.name.trim() : '';
+  if (!name) {
+    return null;
+  }
+
+  const role = typeof member.role === 'string' ? member.role : 'AUXILIAR';
+  return {
+    id: typeof member.id === 'string' && member.id.trim() ? member.id : `staff-${index}`,
+    name,
+    role,
+  };
+}
 
 function hasPlayerName(player) {
   const name = player.name?.trim() || '';
@@ -20,15 +51,28 @@ function sortRosterPlayers(firstPlayer, secondPlayer) {
     return firstHasName ? -1 : 1;
   }
 
-  return firstPlayer.number - secondPlayer.number;
+  const firstIsSubstitute = /^Suplente\s+\d+$/i.test(firstPlayer.name?.trim() || '');
+  const secondIsSubstitute = /^Suplente\s+\d+$/i.test(secondPlayer.name?.trim() || '');
+
+  if (firstIsSubstitute !== secondIsSubstitute) {
+    return firstIsSubstitute ? 1 : -1;
+  }
+
+  if (firstIsSubstitute && secondIsSubstitute) {
+    return (Number(firstPlayer.name.match(/\d+/)?.[0]) || 0) - (Number(secondPlayer.name.match(/\d+/)?.[0]) || 0);
+  }
+
+  return (Number(firstPlayer.number) || 0) - (Number(secondPlayer.number) || 0);
 }
 
 export default function RosterPanel({
   teams,
   roster,
+  technicalStaff = [],
   onAddPlayer,
   onUpdatePlayer,
   onMovePlayer,
+  onUpdateTechnicalStaff = () => {},
   onSelectLineup,
   lineupConfirmed,
   managementOnly = false,
@@ -36,6 +80,22 @@ export default function RosterPanel({
   const [draft, setDraft] = useState(emptyPlayer);
   const [editingId, setEditingId] = useState(null);
   const [addFormOpen, setAddFormOpen] = useState(false);
+  const [technicalStaffDraft, setTechnicalStaffDraft] = useState(emptyTechnicalStaffMember);
+  const [editingTechnicalStaffId, setEditingTechnicalStaffId] = useState(null);
+
+  const technicalStaffList = useMemo(
+    () => (Array.isArray(technicalStaff) ? technicalStaff : [])
+      .map((member, index) => normalizeTechnicalStaffMember(member, index))
+      .filter(Boolean),
+    [technicalStaff],
+  );
+
+  useEffect(() => {
+    if (editingTechnicalStaffId && !technicalStaffList.some((member) => member.id === editingTechnicalStaffId)) {
+      setEditingTechnicalStaffId(null);
+      setTechnicalStaffDraft(emptyTechnicalStaffMember);
+    }
+  }, [editingTechnicalStaffId, technicalStaffList]);
 
   const starterPlayers = useMemo(
     () => [...roster.local].sort(sortRosterPlayers),
@@ -98,6 +158,57 @@ export default function RosterPanel({
     });
     setEditingId(null);
     setDraft(emptyPlayer);
+  };
+
+  const handleSaveTechnicalStaff = (event) => {
+    event.preventDefault();
+
+    const normalizedName = technicalStaffDraft.name.trim();
+    if (!normalizedName) {
+      return;
+    }
+
+    if (editingTechnicalStaffId) {
+      onUpdateTechnicalStaff(
+        technicalStaffList.map((member) => member.id === editingTechnicalStaffId
+          ? { ...member, name: normalizedName, role: technicalStaffDraft.role }
+          : member),
+      );
+      setEditingTechnicalStaffId(null);
+    } else {
+      onUpdateTechnicalStaff([
+        ...technicalStaffList,
+        {
+          id: crypto.randomUUID(),
+          name: normalizedName,
+          role: technicalStaffDraft.role,
+        },
+      ]);
+    }
+
+    setTechnicalStaffDraft(emptyTechnicalStaffMember);
+  };
+
+  const startEditTechnicalStaff = (member) => {
+    setEditingTechnicalStaffId(member.id);
+    setTechnicalStaffDraft({
+      name: member.name,
+      role: member.role,
+    });
+  };
+
+  const removeTechnicalStaff = (memberId) => {
+    onUpdateTechnicalStaff(technicalStaffList.filter((member) => member.id !== memberId));
+
+    if (editingTechnicalStaffId === memberId) {
+      setEditingTechnicalStaffId(null);
+      setTechnicalStaffDraft(emptyTechnicalStaffMember);
+    }
+  };
+
+  const technicalStaffRoleLabel = (role) => {
+    const option = technicalStaffRoleOptions.find((roleOption) => roleOption.value === role);
+    return option ? option.label : 'Auxiliar';
   };
 
   return (
@@ -181,6 +292,58 @@ export default function RosterPanel({
           </div>
         ))}
         </div>
+
+        <section className="technical-staff-panel" aria-label="Cuerpo técnico">
+          <h3>Cuerpo técnico</h3>
+          <form className="technical-staff-form" onSubmit={handleSaveTechnicalStaff}>
+            <select
+              value={technicalStaffDraft.role}
+              onChange={(event) => setTechnicalStaffDraft((current) => ({ ...current, role: event.target.value }))}
+              aria-label="Rol de cuerpo técnico"
+            >
+              {technicalStaffRoleOptions.map((roleOption) => (
+                <option key={roleOption.value} value={roleOption.value}>{roleOption.label}</option>
+              ))}
+            </select>
+            <input
+              type="text"
+              value={technicalStaffDraft.name}
+              onChange={(event) => setTechnicalStaffDraft((current) => ({ ...current, name: event.target.value }))}
+              placeholder="Nombre"
+              aria-label="Nombre de cuerpo técnico"
+            />
+            <button type="submit" className="secondary-button">{editingTechnicalStaffId ? 'Guardar' : 'Añadir'}</button>
+            {editingTechnicalStaffId && (
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => {
+                  setEditingTechnicalStaffId(null);
+                  setTechnicalStaffDraft(emptyTechnicalStaffMember);
+                }}
+              >
+                Cancelar
+              </button>
+            )}
+          </form>
+
+          {technicalStaffList.length > 0 && (
+            <ul className="technical-staff-list">
+              {technicalStaffList.map((member) => (
+                <li key={member.id}>
+                  <div>
+                    <strong>{member.name}</strong>
+                    <small>{technicalStaffRoleLabel(member.role)}</small>
+                  </div>
+                  <div className="roster-actions">
+                    <button type="button" onClick={() => startEditTechnicalStaff(member)}>Editar</button>
+                    <button type="button" onClick={() => removeTechnicalStaff(member.id)}>Eliminar</button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
         {!managementOnly && (
           <button type="button" className="primary-button" onClick={onSelectLineup}>

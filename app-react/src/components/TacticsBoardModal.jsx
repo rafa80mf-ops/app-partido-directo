@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FORMATION_POSITIONS } from './PitchField';
+import FootballBall from './FootballBall';
 
 const DEFAULT_POSITIONS = [
   { x: 10, y: 50 },
@@ -49,6 +50,117 @@ function getSquareBounds(start, end) {
   };
 }
 
+const DRAWING_TOOLS = [
+  { id: 'arrow-solid', label: 'Flecha continua', kind: 'arrow', dashed: false },
+  { id: 'arrow-dashed', label: 'Flecha discontinua', kind: 'arrow', dashed: true },
+  { id: 'arrow-dotted', label: 'Flecha punteada', kind: 'arrow', dotted: true },
+  { id: 'curve-solid', label: 'Flecha curva continua', kind: 'curve', dashed: false },
+  { id: 'curve-dashed', label: 'Flecha curva discontinua', kind: 'curve', dashed: true },
+  { id: 'curve-dotted', label: 'Flecha curva punteada', kind: 'curve', dotted: true },
+  { id: 'line-solid', label: 'Línea continua', kind: 'line', dashed: false },
+  { id: 'line-dashed', label: 'Línea discontinua', kind: 'line', dashed: true },
+  { id: 'line-dotted', label: 'Línea punteada', kind: 'line', dotted: true },
+  { id: 'square-solid', label: 'Cuadrado', kind: 'square', dashed: false, fill: 'none' },
+  { id: 'square-dashed', label: 'Cuadrado discontinuo', kind: 'square', dashed: true, fill: 'none' },
+  { id: 'square-dotted', label: 'Cuadrado punteado', kind: 'square', dotted: true, fill: 'none' },
+  { id: 'square-hatched', label: 'Cuadrado rayado', kind: 'square', dashed: false, fill: 'hatched' },
+  { id: 'circle-solid', label: 'Círculo', kind: 'circle', dashed: false, fill: 'none' },
+  { id: 'circle-dashed', label: 'Círculo discontinuo', kind: 'circle', dashed: true, fill: 'none' },
+  { id: 'circle-dotted', label: 'Círculo punteado', kind: 'circle', dotted: true, fill: 'none' },
+  { id: 'circle-hatched', label: 'Círculo rayado', kind: 'circle', dashed: false, fill: 'hatched' },
+  { id: 'marker-yellow', label: 'Ficha amarilla', kind: 'marker', marker: 'player', color: '#facc15', stroke: '#fde047' },
+  { id: 'marker-blue', label: 'Ficha azul', kind: 'marker', marker: 'player', color: '#2563eb', stroke: '#93c5fd' },
+  { id: 'marker-red', label: 'Ficha roja', kind: 'marker', marker: 'player', color: '#dc2626', stroke: '#fca5a5' },
+  { id: 'marker-black', label: 'Ficha negra', kind: 'marker', marker: 'player', color: '#111827', stroke: '#9ca3af' },
+  { id: 'marker-cyan', label: 'Ficha cian', kind: 'marker', marker: 'player', color: '#06b6d4', stroke: '#67e8f9' },
+  { id: 'marker-white', label: 'Ficha blanca', kind: 'marker', marker: 'player', color: '#f8fafc', stroke: '#cbd5e1' },
+  { id: 'marker-gold', label: 'Ficha oro', kind: 'marker', marker: 'player', color: '#fcd34d', stroke: '#f59e0b' },
+  { id: 'marker-ball', label: 'Balón', kind: 'marker', marker: 'ball', color: '#ffffff', stroke: '#111827' },
+];
+
+const DRAWING_COLOR_OPTIONS = [
+  '#facc15',
+  '#2563eb',
+  '#dc2626',
+  '#111827',
+  '#06b6d4',
+  '#f8fafc',
+  '#fcd34d',
+];
+
+function withAlpha(hexColor, alphaHex = '2e') {
+  if (typeof hexColor !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(hexColor)) {
+    return '#facc152e';
+  }
+
+  return `${hexColor}${alphaHex}`;
+}
+
+function getCurvePath(start, end) {
+  const controlX = (start.x + end.x) / 2;
+  const controlY = ((start.y + end.y) / 2) - Math.max(4, Math.abs(end.x - start.x) * 0.18);
+  return `M ${start.x} ${start.y} Q ${controlX} ${controlY} ${end.x} ${end.y}`;
+}
+
+function DrawingToolIcon({ tool }) {
+  if (!tool) {
+    return null;
+  }
+
+  const strokePattern = tool.dotted ? '1.2 3.4' : tool.dashed ? '6 4' : undefined;
+
+  if (tool.kind === 'arrow') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <line className="tool-icon-stroke" x1="5" y1="18" x2="19" y2="6" strokeDasharray={strokePattern} />
+        <path className="tool-icon-stroke" d="M 15 6 L 19 6 L 19 10" />
+      </svg>
+    );
+  }
+
+  if (tool.kind === 'curve') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path className="tool-icon-stroke" d="M 5 16 Q 12 4 19 9" strokeDasharray={strokePattern} />
+        <path className="tool-icon-stroke" d="M 17 6 L 19 9 L 15 10" />
+      </svg>
+    );
+  }
+
+  if (tool.kind === 'line') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <line className="tool-icon-stroke" x1="5" y1="18" x2="19" y2="6" strokeDasharray={strokePattern} />
+      </svg>
+    );
+  }
+
+  if (tool.kind === 'square') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="5" y="5" width="14" height="14" strokeDasharray={strokePattern} className={`tool-icon-stroke ${tool.fill === 'hatched' ? 'icon-shape-hatched' : ''}`} />
+      </svg>
+    );
+  }
+
+  if (tool.kind === 'marker') {
+    return tool.marker === 'ball' ? (
+      <FootballBall className="tool-football-ball" />
+    ) : (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="8" r="3" className="tool-marker-fill" style={{ '--tool-fill': tool.color, '--tool-stroke': tool.stroke }} />
+        <rect x="7" y="12" width="10" height="6" rx="3" className="tool-marker-fill" style={{ '--tool-fill': tool.color, '--tool-stroke': tool.stroke }} />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="7" strokeDasharray={strokePattern} className={`tool-icon-stroke ${tool.fill === 'hatched' ? 'icon-shape-hatched' : ''}`} />
+    </svg>
+  );
+}
+
 export default function TacticsBoardModal({
   roster,
   ball,
@@ -67,10 +179,18 @@ export default function TacticsBoardModal({
   const [visitorTacticalPositions, setVisitorTacticalPositions] = useState({});
   const [tacticalBallPosition, setTacticalBallPosition] = useState(ball || { x: 50, y: 50 });
   const [formationOpen, setFormationOpen] = useState(false);
-  const [drawingMode, setDrawingMode] = useState(false);
-  const [drawingType, setDrawingType] = useState('dashed');
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const [activeToolId, setActiveToolId] = useState(null);
+  const [drawingColor, setDrawingColor] = useState(DRAWING_COLOR_OPTIONS[0]);
   const [tacticalLines, setTacticalLines] = useState([]);
+  const [tacticalMarkers, setTacticalMarkers] = useState([]);
   const [drawingPreview, setDrawingPreview] = useState(null);
+
+  const activeTool = DRAWING_TOOLS.find((tool) => tool.id === activeToolId) || null;
+  const markerTools = DRAWING_TOOLS.filter((tool) => tool.kind === 'marker');
+  const drawingTools = DRAWING_TOOLS.filter((tool) => tool.kind !== 'marker');
+  const markerToolActive = activeTool?.kind === 'marker';
+  const drawingMode = Boolean(activeTool && !markerToolActive);
 
   const squadPlayers = useMemo(() => {
     const players = [...(roster?.local || []), ...(roster?.bench || [])];
@@ -180,6 +300,13 @@ export default function TacticsBoardModal({
       return;
     }
 
+    if (player?.kind === 'marker') {
+      setTacticalMarkers((currentMarkers) => currentMarkers.map((marker) => (
+        marker.id === player.id ? { ...marker, ...position } : marker
+      )));
+      return;
+    }
+
     const setPositions = player.side === 'visitor' ? setVisitorTacticalPositions : setTacticalPositions;
     setPositions((current) => ({ ...current, [player.id]: position }));
   };
@@ -190,7 +317,7 @@ export default function TacticsBoardModal({
   };
 
   const handleDrawingPointerDown = (event) => {
-    if (!drawingMode) return;
+    if (!activeTool || activeTool.kind === 'marker') return;
 
     const board = event.currentTarget.closest('.tactics-board-surface');
     if (!board) return;
@@ -198,16 +325,51 @@ export default function TacticsBoardModal({
     event.preventDefault();
     event.stopPropagation();
     const start = getBoardPosition(event, board);
+    const selectedDrawingTool = { ...activeTool, color: drawingColor };
     drawingRef.current = { board, start };
-    setDrawingPreview({ start, end: start, type: drawingType });
+    setDrawingPreview({ start, end: start, tool: selectedDrawingTool });
     event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleBoardSurfacePointerDown = (event) => {
+    if (!activeTool || activeTool.kind !== 'marker') {
+      return;
+    }
+
+    const eventTarget = event.target;
+    if (eventTarget instanceof HTMLElement && eventTarget.closest('.tactics-player, .tactics-ball, .tactics-marker')) {
+      return;
+    }
+
+    const board = event.currentTarget;
+    if (!(board instanceof HTMLElement)) {
+      return;
+    }
+
+    const position = getBoardPosition(event, board);
+    setTacticalMarkers((currentMarkers) => [
+      ...currentMarkers,
+      {
+        id: crypto.randomUUID(),
+        x: position.x,
+        y: position.y,
+        marker: activeTool.marker || 'player',
+        color: activeTool.color || '#fde047',
+        stroke: activeTool.stroke || '#facc15',
+      },
+    ]);
   };
 
   const handleDrawingPointerMove = (event) => {
     if (!drawingRef.current) return;
 
     const end = getBoardPosition(event, drawingRef.current.board);
-    setDrawingPreview({ start: drawingRef.current.start, end, type: drawingType });
+    if (!activeTool || activeTool.kind === 'marker') {
+      return;
+    }
+
+    const selectedDrawingTool = { ...activeTool, color: drawingColor };
+    setDrawingPreview({ start: drawingRef.current.start, end, tool: selectedDrawingTool });
   };
 
   const handleDrawingPointerUp = (event) => {
@@ -215,9 +377,16 @@ export default function TacticsBoardModal({
 
     const end = getBoardPosition(event, drawingRef.current.board);
     const start = drawingRef.current.start;
+    if (!activeTool) {
+      drawingRef.current = null;
+      setDrawingPreview(null);
+      event.currentTarget.releasePointerCapture?.(event.pointerId);
+      return;
+    }
+
     setTacticalLines((currentLines) => [
       ...currentLines,
-      { id: crypto.randomUUID(), start, end, type: drawingType },
+      { id: crypto.randomUUID(), start, end, tool: { ...activeTool, color: drawingColor } },
     ]);
     drawingRef.current = null;
     setDrawingPreview(null);
@@ -295,30 +464,76 @@ export default function TacticsBoardModal({
           <div className="tactics-drawing-controls" aria-label="Controles de dibujo">
             <button
               type="button"
-              className={drawingMode ? 'active' : ''}
-              onClick={() => setDrawingMode((isActive) => !isActive)}
-              aria-pressed={drawingMode}
-              title="Dibujar líneas o flechas"
+              className={`${toolsOpen ? 'active' : ''} ${drawingMode ? 'tool-enabled' : ''}`}
+              onClick={() => setToolsOpen((isOpen) => !isOpen)}
+              aria-expanded={toolsOpen}
+              title="Seleccionar herramienta de dibujo"
             >
-              {drawingMode ? 'Terminar dibujo' : 'Dibujar'}
+              Herramienta
             </button>
-            {drawingMode && (
-              <>
-                <button type="button" className={drawingType === 'dashed' ? 'active' : ''} onClick={() => setDrawingType('dashed')} aria-pressed={drawingType === 'dashed'}>
-                  Flecha discontinua
+            {toolsOpen && (
+              <div className="tactics-tool-popover" role="menu" aria-label="Herramientas de dibujo">
+                <div className="tactics-tool-grid">
+                  {drawingTools.map((tool) => (
+                    <button
+                      key={tool.id}
+                      type="button"
+                      className={`tactics-tool-button ${activeToolId === tool.id ? 'active' : ''}`}
+                      onClick={() => {
+                        setActiveToolId(tool.id);
+                      }}
+                      title={tool.label}
+                      aria-label={tool.label}
+                      aria-pressed={activeToolId === tool.id}
+                    >
+                      <DrawingToolIcon tool={tool} />
+                    </button>
+                  ))}
+                </div>
+                <div className="tactics-tool-separator" aria-hidden="true" />
+                <div className="tactics-tool-grid tactics-marker-tool-grid">
+                  {markerTools.map((tool) => (
+                    <button
+                      key={tool.id}
+                      type="button"
+                      className={`tactics-tool-button marker ${activeToolId === tool.id ? 'active' : ''}`}
+                      onClick={() => {
+                        setActiveToolId(tool.id);
+                      }}
+                      title={tool.label}
+                      aria-label={tool.label}
+                      aria-pressed={activeToolId === tool.id}
+                    >
+                      <DrawingToolIcon tool={tool} />
+                    </button>
+                  ))}
+                </div>
+                <div className="tactics-color-picker" aria-label="Colores de dibujo">
+                  {DRAWING_COLOR_OPTIONS.map((colorOption) => (
+                    <button
+                      key={colorOption}
+                      type="button"
+                      className={`tactics-color-swatch ${drawingColor === colorOption ? 'active' : ''}`}
+                      style={{ backgroundColor: colorOption }}
+                      onClick={() => setDrawingColor(colorOption)}
+                      aria-label={`Color ${colorOption}`}
+                      aria-pressed={drawingColor === colorOption}
+                    />
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className="tactics-tool-clear-selection"
+                  onClick={() => {
+                    setActiveToolId(null);
+                    setDrawingPreview(null);
+                  }}
+                >
+                  Desactivar dibujo
                 </button>
-                <button type="button" className={drawingType === 'arrow' ? 'active' : ''} onClick={() => setDrawingType('arrow')} aria-pressed={drawingType === 'arrow'}>
-                  Flecha continua
-                </button>
-                <button type="button" className={drawingType === 'circle' ? 'active' : ''} onClick={() => setDrawingType('circle')} aria-pressed={drawingType === 'circle'}>
-                  Círculo
-                </button>
-                <button type="button" className={drawingType === 'square' ? 'active' : ''} onClick={() => setDrawingType('square')} aria-pressed={drawingType === 'square'}>
-                  Cuadrado
-                </button>
-              </>
+              </div>
             )}
-            <button type="button" onClick={() => setTacticalLines([])} disabled={tacticalLines.length === 0}>
+            <button type="button" onClick={() => { setTacticalLines([]); setTacticalMarkers([]); }} disabled={tacticalLines.length === 0 && tacticalMarkers.length === 0}>
               Limpiar
             </button>
           </div>
@@ -326,7 +541,7 @@ export default function TacticsBoardModal({
         </div>
 
         <div className="tactics-board-layout">
-          <div className="tactics-board-surface pitch-canvas" aria-label="Tablero táctico">
+          <div className="tactics-board-surface pitch-canvas" aria-label="Tablero táctico" onPointerDown={handleBoardSurfacePointerDown}>
             <div className="area-large-left" />
             <div className="area-small-left" />
             <div className="area-large-right" />
@@ -357,10 +572,13 @@ export default function TacticsBoardModal({
                 <marker id="tactics-arrowhead" markerWidth="4" markerHeight="4" refX="3.2" refY="2" orient="auto" markerUnits="userSpaceOnUse">
                   <path d="M 0 0 L 4 2 L 0 4 z" />
                 </marker>
+                <pattern id="tactics-hatch" patternUnits="userSpaceOnUse" width="3" height="3" patternTransform="rotate(45)">
+                  <line x1="0" y1="0" x2="0" y2="3" stroke="rgba(251, 146, 60, 0.6)" strokeWidth="1" />
+                </pattern>
               </defs>
               {[...tacticalLines, ...(drawingPreview ? [{ ...drawingPreview, id: 'preview' }] : [])].map((line) => (
                 <g key={line.id}>
-                  {line.id !== 'preview' && line.type !== 'circle' && line.type !== 'square' && (
+                  {line.id !== 'preview' && line.tool?.kind !== 'circle' && line.tool?.kind !== 'square' && line.tool?.kind !== 'curve' && (
                     <line
                       x1={line.start.x}
                       y1={line.start.y}
@@ -377,12 +595,30 @@ export default function TacticsBoardModal({
                       aria-label="Borrar anotación táctica"
                     />
                   )}
-                  {line.type === 'circle' && (
+                  {line.id !== 'preview' && line.tool?.kind === 'curve' && (
+                    <path
+                      d={getCurvePath(line.start, line.end)}
+                      className="tactics-drawing-hit-area"
+                      onPointerDown={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        setTacticalLines((currentLines) => currentLines.filter((currentLine) => currentLine.id !== line.id));
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      aria-label="Borrar anotación táctica"
+                    />
+                  )}
+                  {line.tool?.kind === 'circle' && (
                     <circle
                       cx={(line.start.x + line.end.x) / 2}
                       cy={(line.start.y + line.end.y) / 2}
                       r={Math.min(Math.abs(line.end.x - line.start.x), Math.abs(line.end.y - line.start.y)) / 2}
-                      className="tactics-drawing-shape"
+                      className={`tactics-drawing-shape ${line.tool?.dashed ? 'dashed' : ''} ${line.tool?.dotted ? 'dotted' : ''}`}
+                      style={{
+                        stroke: line.tool?.color || '#fb923c',
+                        fill: line.tool?.fill === 'hatched' ? withAlpha(line.tool?.color || '#fb923c', '33') : 'transparent',
+                      }}
                       onPointerDown={line.id !== 'preview' ? (event) => {
                         event.preventDefault();
                         event.stopPropagation();
@@ -392,13 +628,17 @@ export default function TacticsBoardModal({
                       aria-label={line.id !== 'preview' ? 'Borrar círculo' : undefined}
                     />
                   )}
-                  {line.type === 'square' && (
+                  {line.tool?.kind === 'square' && (
                     <rect
                       {...(() => {
                         const square = getSquareBounds(line.start, line.end);
                         return { x: square.x, y: square.y, width: square.side, height: square.side };
                       })()}
-                      className="tactics-drawing-shape"
+                      className={`tactics-drawing-shape ${line.tool?.dashed ? 'dashed' : ''} ${line.tool?.dotted ? 'dotted' : ''}`}
+                      style={{
+                        stroke: line.tool?.color || '#fb923c',
+                        fill: line.tool?.fill === 'hatched' ? withAlpha(line.tool?.color || '#fb923c', '33') : 'transparent',
+                      }}
                       onPointerDown={line.id !== 'preview' ? (event) => {
                         event.preventDefault();
                         event.stopPropagation();
@@ -408,19 +648,51 @@ export default function TacticsBoardModal({
                       aria-label={line.id !== 'preview' ? 'Borrar cuadrado' : undefined}
                     />
                   )}
-                  {line.type !== 'circle' && line.type !== 'square' && (
+                  {line.tool?.kind === 'curve' && (
+                    <path
+                      d={getCurvePath(line.start, line.end)}
+                      className={`tactics-drawing-line ${line.tool?.dashed ? 'dashed' : ''} ${line.tool?.dotted ? 'dotted' : ''} arrow`}
+                      style={{ stroke: line.tool?.color || '#fb923c' }}
+                    />
+                  )}
+                  {line.tool?.kind !== 'circle' && line.tool?.kind !== 'square' && line.tool?.kind !== 'curve' && (
                     <line
                       x1={line.start.x}
                       y1={line.start.y}
                       x2={line.end.x}
                       y2={line.end.y}
-                      className={`tactics-drawing-line arrow ${line.type === 'dashed' ? 'dashed' : ''}`}
+                      className={`tactics-drawing-line ${line.tool?.kind === 'arrow' ? 'arrow' : ''} ${line.tool?.dashed ? 'dashed' : ''} ${line.tool?.dotted ? 'dotted' : ''}`}
+                      style={{ stroke: line.tool?.color || '#fb923c' }}
                     />
                   )}
                 </g>
               ))}
             </svg>
-            <div
+            {tacticalMarkers.map((marker) => (
+              <button
+                key={marker.id}
+                type="button"
+                className={`tactics-marker ${marker.marker === 'ball' ? 'ball' : 'player'}`}
+                style={{
+                  left: `${marker.x}%`,
+                  top: `${marker.y}%`,
+                  '--marker-color': marker.color,
+                  '--marker-stroke': marker.stroke,
+                }}
+                onPointerDown={(event) => {
+                  event.stopPropagation();
+                  handlePointerDown(event, { kind: 'marker', id: marker.id });
+                }}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerUp}
+                onDoubleClick={() => setTacticalMarkers((currentMarkers) => currentMarkers.filter((currentMarker) => currentMarker.id !== marker.id))}
+                title={marker.marker === 'ball' ? 'Balón auxiliar' : 'Ficha auxiliar (doble click para borrar)'}
+              >
+                {marker.marker === 'ball' ? <FootballBall className="marker-ball-glyph" /> : <span className="marker-player-glyph" aria-hidden="true" />}
+              </button>
+            ))}
+            <FootballBall
               className="pitch-ball tactics-ball"
               style={{ left: `${tacticalBallPosition.x}%`, top: `${tacticalBallPosition.y}%` }}
               onPointerDown={(event) => handlePointerDown(event, 'ball')}
@@ -431,9 +703,7 @@ export default function TacticsBoardModal({
               tabIndex={0}
               aria-label="Balón táctico"
               title="Arrastrar balón"
-            >
-              <span />
-            </div>
+            />
             {boardPlayers.map((player) => (
               <button
                 key={`${player.side}-${player.id}`}

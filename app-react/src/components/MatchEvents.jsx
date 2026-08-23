@@ -1,6 +1,8 @@
+import FootballBall from './FootballBall';
+
 function getEventEmoji(type) {
   const mapping = {
-    goal: '⚽',
+    goal: null,
     assist: '🅰️',
     yellow: '🟨',
     red: '🟥',
@@ -39,7 +41,7 @@ export default function MatchEvents({ events, onStartNewMatch, teamAppearance })
         <ul className="event-list">
           {events.map((event) => (
             <li key={event.id} className="event-item">
-              <span className={`event-emoji ${event.team === 'local' ? 'local-event-emoji' : event.team === 'visitor' ? 'visitor-event-emoji' : ''} ${event.team === 'local' && teamAppearance?.shape === 'shirt' ? 'appearance-shirt' : ''}`} style={event.team === 'local' ? { '--team-color': teamAppearance?.color || '#facc15', '--team-color-secondary': teamAppearance?.secondaryColor || '#111827' } : undefined}>{getEventEmoji(event.type)}</span>
+              <span className={`event-emoji ${event.team === 'local' ? 'local-event-emoji' : event.team === 'visitor' ? 'visitor-event-emoji' : ''} ${event.team === 'local' && teamAppearance?.shape === 'shirt' ? 'appearance-shirt' : ''}`} style={event.team === 'local' ? { '--team-color': teamAppearance?.color || '#facc15', '--team-color-secondary': teamAppearance?.secondaryColor || '#111827' } : undefined}>{event.type === 'goal' ? <FootballBall className="event-ball" /> : getEventEmoji(event.type)}</span>
               <div>
                 {event.players?.length > 0 && (
                   <div className="event-player-list">

@@ -1,5 +1,7 @@
+import FootballBall from './FootballBall';
+
 const actions = [
-  { type: 'goal', label: '⚽ Gol' },
+  { type: 'goal', label: 'Gol' },
   { type: 'assist', label: '🅰️ Asistencia' },
   { type: 'yellow', label: '🟨 Tarjeta amarilla' },
   { type: 'red', label: '🟥 Tarjeta roja' },
@@ -22,7 +24,7 @@ export default function PlayerActionMenuModal({ player, team, onSelectAction, on
               key={action.type}
               onClick={() => onSelectAction(action.type)}
             >
-              {action.label}
+              {action.type === 'goal' ? <><FootballBall /> {action.label}</> : action.label}
             </button>
           ))}
         </div>

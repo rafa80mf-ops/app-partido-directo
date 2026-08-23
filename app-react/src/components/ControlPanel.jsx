@@ -1,3 +1,5 @@
+import FootballBall from './FootballBall';
+
 import { useState } from 'react';
 
 export default function ControlPanel({
@@ -73,7 +75,7 @@ export default function ControlPanel({
 
       {localActionsOpen && (
         <div className="team-actions-panel local-actions-panel">
-          <button type="button" className={buttonBaseClass} onClick={() => onGoal('local')}>⚽ Gol</button>
+          <button type="button" className={buttonBaseClass} onClick={() => onGoal('local')}><FootballBall /> Gol</button>
           <button type="button" className={buttonBaseClass} onClick={() => onAssist('local')}>🅰️ Asistencia</button>
           <button type="button" className={buttonBaseClass} onClick={() => onCard('local', 'yellow')}>🟨 Amarilla</button>
           <button type="button" className={buttonBaseClass} onClick={() => onCard('local', 'red')}>🟥 Roja</button>
@@ -84,7 +86,7 @@ export default function ControlPanel({
 
       {visitorActionsOpen && (
         <div className="team-actions-panel visitor-actions-panel">
-          <button type="button" className={buttonBaseClass} onClick={() => onGoal('visitor')}>⚽ Gol visitante</button>
+          <button type="button" className={buttonBaseClass} onClick={() => onGoal('visitor')}><FootballBall /> Gol visitante</button>
           <button type="button" className={buttonBaseClass} onClick={() => onAssist('visitor')}>🅰️ Asistencia visitante</button>
           <button type="button" className={buttonBaseClass} onClick={() => onCard('visitor', 'yellow')}>🟨 Amarilla visitante</button>
           <button type="button" className={buttonBaseClass} onClick={() => onCard('visitor', 'red')}>🟥 Roja visitante</button>
