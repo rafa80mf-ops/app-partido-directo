@@ -220,7 +220,7 @@ export default function RosterPanel({
         </button>
       </div>
 
-      {addFormOpen && <>
+      {addFormOpen && (
         <form className="player-form" onSubmit={handleSubmit}>
         <input
           type="number"
@@ -254,8 +254,9 @@ export default function RosterPanel({
           {editingId ? 'Guardar' : 'Crear'}
         </button>
         </form>
+      )}
 
-        <div className={`roster-columns ${lineupConfirmed && !managementOnly ? '' : 'roster-single-column'}`}>
+      <div className={`roster-columns ${lineupConfirmed && !managementOnly ? '' : 'roster-single-column'}`}>
         {rosterGroups.map((group) => (
           <div className="roster-group" key={group.title}>
             <h3>{group.title}</h3>
@@ -291,66 +292,65 @@ export default function RosterPanel({
             </ul>
           </div>
         ))}
-        </div>
+      </div>
 
-        <section className="technical-staff-panel" aria-label="Cuerpo técnico">
-          <h3>Cuerpo técnico</h3>
-          <form className="technical-staff-form" onSubmit={handleSaveTechnicalStaff}>
-            <select
-              value={technicalStaffDraft.role}
-              onChange={(event) => setTechnicalStaffDraft((current) => ({ ...current, role: event.target.value }))}
-              aria-label="Rol de cuerpo técnico"
+      <section className="technical-staff-panel" aria-label="Cuerpo técnico">
+        <h3>Cuerpo técnico</h3>
+        <form className="technical-staff-form" onSubmit={handleSaveTechnicalStaff}>
+          <select
+            value={technicalStaffDraft.role}
+            onChange={(event) => setTechnicalStaffDraft((current) => ({ ...current, role: event.target.value }))}
+            aria-label="Rol de cuerpo técnico"
+          >
+            {technicalStaffRoleOptions.map((roleOption) => (
+              <option key={roleOption.value} value={roleOption.value}>{roleOption.label}</option>
+            ))}
+          </select>
+          <input
+            type="text"
+            value={technicalStaffDraft.name}
+            onChange={(event) => setTechnicalStaffDraft((current) => ({ ...current, name: event.target.value }))}
+            placeholder="Nombre"
+            aria-label="Nombre de cuerpo técnico"
+          />
+          <button type="submit" className="secondary-button">{editingTechnicalStaffId ? 'Guardar' : 'Añadir'}</button>
+          {editingTechnicalStaffId && (
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => {
+                setEditingTechnicalStaffId(null);
+                setTechnicalStaffDraft(emptyTechnicalStaffMember);
+              }}
             >
-              {technicalStaffRoleOptions.map((roleOption) => (
-                <option key={roleOption.value} value={roleOption.value}>{roleOption.label}</option>
-              ))}
-            </select>
-            <input
-              type="text"
-              value={technicalStaffDraft.name}
-              onChange={(event) => setTechnicalStaffDraft((current) => ({ ...current, name: event.target.value }))}
-              placeholder="Nombre"
-              aria-label="Nombre de cuerpo técnico"
-            />
-            <button type="submit" className="secondary-button">{editingTechnicalStaffId ? 'Guardar' : 'Añadir'}</button>
-            {editingTechnicalStaffId && (
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={() => {
-                  setEditingTechnicalStaffId(null);
-                  setTechnicalStaffDraft(emptyTechnicalStaffMember);
-                }}
-              >
-                Cancelar
-              </button>
-            )}
-          </form>
-
-          {technicalStaffList.length > 0 && (
-            <ul className="technical-staff-list">
-              {technicalStaffList.map((member) => (
-                <li key={member.id}>
-                  <div>
-                    <strong>{member.name}</strong>
-                    <small>{technicalStaffRoleLabel(member.role)}</small>
-                  </div>
-                  <div className="roster-actions">
-                    <button type="button" onClick={() => startEditTechnicalStaff(member)}>Editar</button>
-                    <button type="button" onClick={() => removeTechnicalStaff(member.id)}>Eliminar</button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+              Cancelar
+            </button>
           )}
-        </section>
+        </form>
 
-        {!managementOnly && (
-          <button type="button" className="primary-button" onClick={onSelectLineup}>
-            Seleccionar 11 titulares
-          </button>
+        {technicalStaffList.length > 0 && (
+          <ul className="technical-staff-list">
+            {technicalStaffList.map((member) => (
+              <li key={member.id}>
+                <div>
+                  <strong>{member.name}</strong>
+                  <small>{technicalStaffRoleLabel(member.role)}</small>
+                </div>
+                <div className="roster-actions">
+                  <button type="button" onClick={() => startEditTechnicalStaff(member)}>Editar</button>
+                  <button type="button" onClick={() => removeTechnicalStaff(member.id)}>Eliminar</button>
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
-      </>}
+      </section>
+
+      {!managementOnly && (
+        <button type="button" className="primary-button" onClick={onSelectLineup}>
+          Seleccionar 11 titulares
+        </button>
+      )}
     </section>
   );
 }

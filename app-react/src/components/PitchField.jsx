@@ -110,7 +110,7 @@ export default function PitchField({ teams, clubSide, roster, ball, onPlayerClic
     >
       <span className="player-number">{player.number}</span>
       {teamKey === 'local' && <span className="player-name">{player.name}</span>}
-      {player.injured && <span className="injury-icon">🩹</span>}
+      {player.injured && <span className="injury-icon">✚</span>}
       {player.redCards > 0 && <span className="red-card">🟥</span>}
       {player.yellowCards > 0 && !player.redCards && (
         <span className="yellow-card-badge">🟨</span>
@@ -191,7 +191,7 @@ export default function PitchField({ teams, clubSide, roster, ball, onPlayerClic
                 >
                   <span className="player-number">{player.number}</span>
                   <span className="bench-player-name">{player.name}</span>
-                  {player.injured && <span className="injury-icon">🩹</span>}
+                  {player.injured && <span className="injury-icon">✚</span>}
                   {player.redCards > 0 && <span className="red-card">🟥</span>}
                   {player.yellowCards > 0 && !player.redCards && (
                     <span className="yellow-card-badge">🟨</span>

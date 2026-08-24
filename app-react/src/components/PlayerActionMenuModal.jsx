@@ -5,7 +5,7 @@ const actions = [
   { type: 'assist', label: '🅰️ Asistencia' },
   { type: 'yellow', label: '🟨 Tarjeta amarilla' },
   { type: 'red', label: '🟥 Tarjeta roja' },
-  { type: 'injury', label: '🩹 Lesión' },
+  { type: 'injury', label: 'Lesión' },
   { type: 'substitution', label: '🔄 Cambio' },
   { type: 'edit-number', label: '✏️ Dorsal' },
 ];
@@ -24,7 +24,7 @@ export default function PlayerActionMenuModal({ player, team, onSelectAction, on
               key={action.type}
               onClick={() => onSelectAction(action.type)}
             >
-              {action.type === 'goal' ? <><FootballBall /> {action.label}</> : action.label}
+              {action.type === 'goal' ? <><FootballBall /> {action.label}</> : action.type === 'injury' ? <><span className="injury-cross">✚</span> {action.label}</> : action.label}
             </button>
           ))}
         </div>

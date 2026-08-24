@@ -123,11 +123,21 @@ function normalizeTrainingSessions(rawValue) {
           ]))
         : {};
 
+      const absenceReasons = training.absenceReasons && typeof training.absenceReasons === 'object'
+        ? Object.fromEntries(Object.entries(training.absenceReasons)
+          .filter(([playerId]) => attendance[playerId] === 'absent')
+          .map(([playerId, reason]) => {
+            const safeReason = typeof reason === 'string' ? reason.trim().toLowerCase() : 'otros';
+            return [playerId, ['lesion', 'estudios', 'medicos', 'otros'].includes(safeReason) ? safeReason : 'otros'];
+          }))
+        : {};
+
       return {
         id: typeof training.id === 'string' && training.id.trim() ? training.id : `training-${index}-${training.date}`,
         date: String(training.date),
         number: Math.max(1, Number(training.number) || 1),
         attendance,
+        absenceReasons,
       };
     })
     .filter(Boolean)

@@ -22,6 +22,18 @@ function getPlayerKey(player) {
   return String(player.id ?? `${player.number}-${player.name}`);
 }
 
+function getEventMinuteLabel(event) {
+  if (Number.isFinite(event?.elapsedSeconds)) {
+    return `${Math.floor(event.elapsedSeconds / 60)}'`;
+  }
+
+  if (Number.isFinite(event?.minute)) {
+    return `${Math.floor(event.minute)}'`;
+  }
+
+  return null;
+}
+
 export default function HistoryEditModal({ match, onSave, onClose }) {
   const [events, setEvents] = useState(() => [...match.events]);
   const [editingEventId, setEditingEventId] = useState(null);
@@ -56,7 +68,7 @@ export default function HistoryEditModal({ match, onSave, onClose }) {
       || null;
   };
 
-  const getEventIcon = (eventType) => ({ assist: '🅰️', yellow: '🟨', red: '🟥', substitution: '🔄', injury: '🩹' }[eventType] || '•');
+  const getEventIcon = (eventType) => ({ assist: '🅰️', yellow: '🟨', red: '🟥', substitution: '🔄', injury: '✚' }[eventType] || '•');
 
   const updateEventPlayer = (event, playerId) => {
     const player = players.find((candidate) => getPlayerKey(candidate) === String(playerId));
@@ -83,6 +95,7 @@ export default function HistoryEditModal({ match, onSave, onClose }) {
           {sortedEvents.length === 0 ? <p className="empty-state">No hay acciones registradas.</p> : sortedEvents.map((event) => (
             <div className={`history-action-row ${editingEventId === event.id ? 'editing' : ''}`} key={event.id}>
               <button type="button" className="history-action-preview" onClick={() => setEditingEventId((currentId) => currentId === event.id ? null : event.id)}>
+                <span className="history-event-minute">{getEventMinuteLabel(event) || "--'"}</span>
                 <span className="report-event-icon" aria-hidden="true">{event.type === 'goal' ? <FootballBall className="event-ball" /> : getEventIcon(event.type)}</span>
                 <span>{event.label}</span>
               </button>

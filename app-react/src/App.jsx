@@ -32,12 +32,18 @@ import {
 import { saveMatchSnapshot } from './data/localDb';
 import { translateUiText, translateUiTree } from './i18n/uiTranslator';
 
-function buildEvent(type, label, team = 'neutral', players = []) {
+function buildEvent(type, label, team = 'neutral', players = [], elapsedSeconds = null) {
+  const safeElapsedSeconds = Number.isFinite(elapsedSeconds)
+    ? Math.max(0, Math.floor(elapsedSeconds))
+    : null;
+
   return {
     id: crypto.randomUUID(),
     type,
     label,
     team,
+    minute: safeElapsedSeconds === null ? null : Math.floor(safeElapsedSeconds / 60),
+    elapsedSeconds: safeElapsedSeconds,
     players: players.map((player) => ({ id: player.id, name: player.name, number: player.number })),
     createdAt: new Date().toISOString(),
   };
@@ -195,6 +201,37 @@ const LANGUAGE_OPTIONS = [
   { code: 'it', label: 'Italiano', nativeLabel: 'Italiano', region: 'Italia' },
 ];
 
+function playHalfTimeAlertSound() {
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) {
+      return;
+    }
+
+    const context = new AudioContextClass();
+    const oscillator = context.createOscillator();
+    const gainNode = context.createGain();
+
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(880, context.currentTime);
+    oscillator.frequency.setValueAtTime(660, context.currentTime + 0.12);
+
+    gainNode.gain.setValueAtTime(0.0001, context.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.22, context.currentTime + 0.03);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.35);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(context.destination);
+    oscillator.start();
+    oscillator.stop(context.currentTime + 0.36);
+    oscillator.onended = () => {
+      context.close();
+    };
+  } catch {
+    // Silent fallback: if audio cannot play, we still show the visual alert.
+  }
+}
+
 function App() {
   const appRootRef = useRef(null);
   const [matchState, setMatchState] = useState(() => loadMatchState());
@@ -217,6 +254,8 @@ function App() {
   const [activeSection, setActiveSection] = useState('live');
   const [teamSeasonDraft, setTeamSeasonDraft] = useState('');
   const [halfTimeNoticeShown, setHalfTimeNoticeShown] = useState(false);
+  const [firstHalfAddedMinutes, setFirstHalfAddedMinutes] = useState(0);
+  const [firstHalfAddedConfigured, setFirstHalfAddedConfigured] = useState(false);
   const [fullTimeNoticeShown, setFullTimeNoticeShown] = useState(false);
   const [finalizeConfirmOpen, setFinalizeConfirmOpen] = useState(false);
   const [equipmentOpen, setEquipmentOpen] = useState(false);
@@ -293,31 +332,93 @@ function App() {
       return;
     }
 
-    if (matchState.elapsedSeconds >= 47 * 60 && !halfTimeNoticeShown) {
-      setHalfTimeNoticeShown(true);
-      const isHalfTime = window.confirm(translateUiText('Han pasado 47 minutos. ¿Ha terminado la primera parte?', matchState.appLanguage));
-      if (isHalfTime) {
+    if (matchState.elapsedSeconds >= 45 * 60 && !firstHalfAddedConfigured && !halfTimeNoticeShown) {
+      const addedMinutesInput = window.prompt(
+        translateUiText('Minuto 45. Indica minutos de descuento para la primera parte (0-15).', matchState.appLanguage),
+        `${firstHalfAddedMinutes}`,
+      );
+      const normalizedInput = (addedMinutesInput ?? '').trim();
+
+      if (!normalizedInput) {
+        setHalfTimeNoticeShown(true);
+        window.alert(translateUiText('Sin descuento confirmado. El cronometro seguira hasta que pulses Pausar manualmente cuando termine la primera parte.', matchState.appLanguage));
+        return;
+      }
+
+      const parsedAddedMinutes = Number.parseInt(normalizedInput, 10);
+      if (!Number.isFinite(parsedAddedMinutes)) {
+        window.alert(translateUiText('Valor no valido. Se continuara sin pausa automatica; puedes pausar manualmente cuando pite el arbitro.', matchState.appLanguage));
+        setHalfTimeNoticeShown(true);
+        return;
+      }
+
+      const safeAddedMinutes = Number.isFinite(parsedAddedMinutes)
+        ? Math.max(0, Math.min(15, parsedAddedMinutes))
+        : 0;
+
+      setFirstHalfAddedMinutes(safeAddedMinutes);
+      setFirstHalfAddedConfigured(true);
+
+      if (safeAddedMinutes > 0) {
         updateMatchState((currentState) => ({
           ...currentState,
-          isRunning: false,
           events: [
-            buildEvent('info', 'Primera parte finalizada'),
+            buildEvent('info', `Descuento primera parte: +${safeAddedMinutes} minuto(s)`, 'neutral', [], currentState.elapsedSeconds),
             ...currentState.events,
           ].slice(0, 25),
         }));
+        window.alert(translateUiText(`Se jugara hasta el minuto ${45 + safeAddedMinutes} antes del descanso.`, matchState.appLanguage));
       }
+
+      return;
     }
 
-    if (matchState.elapsedSeconds >= 95 * 60 && !fullTimeNoticeShown) {
-      setFullTimeNoticeShown(true);
-      setFinalizeConfirmOpen(true);
+    const halfTimeTargetSeconds = (45 + firstHalfAddedMinutes) * 60;
+    if (firstHalfAddedConfigured && matchState.elapsedSeconds >= halfTimeTargetSeconds && !halfTimeNoticeShown) {
+      setHalfTimeNoticeShown(true);
+      playHalfTimeAlertSound();
+      window.alert(translateUiText(`Minuto ${45 + firstHalfAddedMinutes}: descanso. El partido se ha pausado automaticamente.`, matchState.appLanguage));
+      updateMatchState((currentState) => ({
+        ...currentState,
+        isRunning: false,
+        events: [
+          buildEvent('info', `Descanso (${45 + firstHalfAddedMinutes}:00) - Partido pausado automaticamente`, 'neutral', [], currentState.elapsedSeconds),
+          ...currentState.events,
+        ].slice(0, 25),
+      }));
     }
-  }, [matchState.isRunning, matchState.elapsedSeconds, halfTimeNoticeShown, fullTimeNoticeShown]);
+
+  }, [matchState.isRunning, matchState.elapsedSeconds, halfTimeNoticeShown, fullTimeNoticeShown, matchState.appLanguage, firstHalfAddedConfigured, firstHalfAddedMinutes]);
 
   useEffect(() => {
     saveMatchState(matchState);
     saveMatchSnapshot(matchState);
   }, [matchState]);
+
+  useEffect(() => {
+    if ((matchState.technicalStaff || []).length > 0) {
+      return;
+    }
+
+    const lastMatchWithTechnicalStaff = [...(matchState.history || [])]
+      .reverse()
+      .find((match) => Array.isArray(match.technicalStaff) && match.technicalStaff.length > 0);
+
+    if (!lastMatchWithTechnicalStaff) {
+      return;
+    }
+
+    updateMatchState((currentState) => {
+      if ((currentState.technicalStaff || []).length > 0) {
+        return currentState;
+      }
+
+      return {
+        ...currentState,
+        technicalStaff: (lastMatchWithTechnicalStaff.technicalStaff || []).map((member) => ({ ...member })),
+      };
+    });
+  }, [matchState.technicalStaff, matchState.history]);
 
   const summary = useMemo(() => {
     const totalGoals = matchState.scores.local + matchState.scores.visitor;
@@ -342,19 +443,29 @@ function App() {
   };
 
   const getAvailablePlayers = () => {
-    const currentPlayers = [...matchState.roster.local, ...matchState.roster.bench];
-    const hasSavedPlayerNames = currentPlayers.some((player) => {
+    const currentPlayers = [...(matchState.roster.local || []), ...(matchState.roster.bench || [])];
+    const latestHistoryMatch = [...(matchState.history || [])].at(-1);
+    const historyPlayers = [
+      ...(latestHistoryMatch?.roster?.local || []),
+      ...(latestHistoryMatch?.roster?.bench || []),
+    ];
+    const basePlayers = currentPlayers.length > 0 ? currentPlayers : historyPlayers;
+
+    const hasSavedPlayerNames = basePlayers.some((player) => {
       const name = player.name?.trim() || '';
       return name && !/^(Suplente|Portera|Defensa|Media|Medio|Delantera)\s*\d*$/i.test(name);
     });
+
     const sourcePlayers = hasSavedPlayerNames
-      ? currentPlayers
+      ? basePlayers
       : [
           ...normalizeMatchState({ ...matchState, roster: { local: [], bench: [] } }).roster.local,
           ...normalizeMatchState({ ...matchState, roster: { local: [], bench: [] } }).roster.bench,
         ];
 
-    return sourcePlayers.map((player) => ({
+    const uniquePlayers = sourcePlayers.filter((player, index, allPlayers) => allPlayers.findIndex((candidate) => candidate.id === player.id) === index);
+
+    return uniquePlayers.map((player) => ({
       ...player,
       injured: false,
       yellowCards: 0,
@@ -504,7 +615,7 @@ function App() {
         ...currentState,
         isRunning: true,
         events: [
-          buildEvent('info', currentState.elapsedSeconds > 0 ? 'Partido reanudado' : 'Partido iniciado'),
+          buildEvent('info', currentState.elapsedSeconds > 0 ? 'Partido reanudado' : 'Partido iniciado', 'neutral', [], currentState.elapsedSeconds),
           ...currentState.events,
         ].slice(0, 25),
       };
@@ -526,11 +637,50 @@ function App() {
         ...currentState,
         isRunning: false,
         events: [
-          buildEvent('info', 'Partido pausado'),
+          buildEvent('info', 'Partido pausado', 'neutral', [], currentState.elapsedSeconds),
           ...currentState.events,
         ].slice(0, 25),
       };
     });
+  };
+
+  const handleEndFirstHalf = () => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      isRunning: false,
+      events: [
+        buildEvent('info', 'Primera parte finalizada (manual)', 'neutral', [], currentState.elapsedSeconds),
+        ...currentState.events,
+      ].slice(0, 25),
+    }));
+    setHalfTimeNoticeShown(true);
+    setFirstHalfAddedConfigured(true);
+  };
+
+  const handleStartSecondHalf = () => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      elapsedSeconds: 45 * 60,
+      isRunning: true,
+      events: [
+        buildEvent('info', 'Segunda parte iniciada (45:00)', 'neutral', [], 45 * 60),
+        ...currentState.events,
+      ].slice(0, 25),
+    }));
+    setHalfTimeNoticeShown(true);
+    setFirstHalfAddedConfigured(true);
+    setFirstHalfAddedMinutes(0);
+  };
+
+  const handleAdvanceFiveMinutes = () => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      elapsedSeconds: Math.max(0, currentState.elapsedSeconds + 5 * 60),
+      events: [
+        buildEvent('info', 'Reloj adelantado +5 min (prueba)', 'neutral', [], Math.max(0, currentState.elapsedSeconds + 5 * 60)),
+        ...currentState.events,
+      ].slice(0, 25),
+    }));
   };
 
   const handleCreateInstantMatch = ({ local, visitor, clubSide }) => {
@@ -551,13 +701,17 @@ function App() {
         visitorBench: cloneVisitorBenchPlayers(allPlayers),
       },
       ball: { x: 50, y: 50 },
-      events: [buildEvent('info', `${local} - ${visitor} creado al instante`)],
+      events: [buildEvent('info', `${local} - ${visitor} creado al instante`, 'neutral', [], currentState.elapsedSeconds)],
     }));
     setStartMatchOpen(false);
     setStartMatchMode('default');
     setActiveCalendarMatchId(null);
     setEditingHistoryId(null);
     setLineupSelectionOpen(true);
+    setFirstHalfAddedMinutes(0);
+    setFirstHalfAddedConfigured(false);
+    setHalfTimeNoticeShown(false);
+    setFullTimeNoticeShown(false);
   };
 
   const handleReset = () => {
@@ -565,6 +719,11 @@ function App() {
     const availablePlayers = getAvailablePlayers();
     resetState.teams = { local: '', visitor: '' };
     resetState.clubSide = 'local';
+    resetState.clubCrest = matchState.clubCrest;
+    resetState.leagueName = matchState.leagueName;
+    resetState.leagueLogo = matchState.leagueLogo;
+    resetState.teamAppearance = { ...(matchState.teamAppearance || DEFAULT_TEAM_APPEARANCE) };
+    resetState.technicalStaff = (matchState.technicalStaff || []).map((member) => ({ ...member }));
     resetState.appLanguage = matchState.appLanguage;
     resetState.calendar = [...matchState.calendar];
     resetState.currentSeason = matchState.currentSeason;
@@ -582,7 +741,7 @@ function App() {
     resetState.elapsedSeconds = 0;
     resetState.isRunning = false;
     resetState.ball = { x: 50, y: 50 };
-    resetState.events = [buildEvent('reset', 'Marcador reiniciado')];
+    resetState.events = [buildEvent('reset', 'Marcador reiniciado', 'neutral', [], 0)];
     updateMatchState(() => resetState);
     setActiveCalendarMatchId(null);
     setEditingHistoryId(null);
@@ -590,6 +749,8 @@ function App() {
     setStartMatchMode('default');
     setStartMatchOpen(false);
     setActiveSection('live');
+    setFirstHalfAddedMinutes(0);
+    setFirstHalfAddedConfigured(false);
     setHalfTimeNoticeShown(false);
     setFullTimeNoticeShown(false);
   };
@@ -670,7 +831,7 @@ function App() {
         visitorBench: cloneVisitorBenchPlayers(allPlayers),
       },
       ball: { x: 50, y: 50 },
-      events: [buildEvent('info', `${match.local} - ${match.visitor} seleccionado del calendario`)],
+      events: [buildEvent('info', `${match.local} - ${match.visitor} seleccionado del calendario`, 'neutral', [], currentState.elapsedSeconds)],
     }));
     setCalendarOpen(false);
     setActiveSection('live');
@@ -706,6 +867,17 @@ function App() {
     };
 
     updateMatchState((currentState) => {
+      const preservedSquad = [...(currentState.roster.local || []), ...(currentState.roster.bench || [])]
+        .filter((player, index, allPlayers) => allPlayers.findIndex((candidate) => candidate.id === player.id) === index)
+        .map((player) => ({
+          ...player,
+          injured: false,
+          yellowCards: 0,
+          redCards: 0,
+          x: 0,
+          y: 0,
+        }));
+
       return {
         ...currentState,
         teams: { local: '', visitor: '' },
@@ -716,9 +888,9 @@ function App() {
         lineupConfirmed: false,
         roster: {
           local: [],
-          bench: [],
+          bench: preservedSquad,
           visitor: [],
-          visitorBench: [],
+          visitorBench: cloneVisitorBenchPlayers(preservedSquad),
         },
         ball: { x: 50, y: 50 },
         history: editingHistoryId
@@ -727,7 +899,7 @@ function App() {
         calendar: activeCalendarMatchId
           ? currentState.calendar.filter((match) => match.id !== activeCalendarMatchId)
           : currentState.calendar,
-        events: [buildEvent('info', 'Partido finalizado. Listo para iniciar uno nuevo.')],
+        events: [buildEvent('info', 'Partido finalizado. Listo para iniciar uno nuevo.', 'neutral', [], currentState.elapsedSeconds)],
       };
     });
     setActiveCalendarMatchId(null);
@@ -736,6 +908,8 @@ function App() {
     setStartMatchMode('default');
     setStartMatchOpen(false);
     setActiveSection('live');
+    setFirstHalfAddedMinutes(0);
+    setFirstHalfAddedConfigured(false);
     setHalfTimeNoticeShown(false);
     setFullTimeNoticeShown(false);
     setFinalizeConfirmOpen(false);
@@ -843,7 +1017,7 @@ function App() {
           : currentState.roster.visitor,
       },
       events: [
-        buildEvent('tactics', `Formación ${formation} aplicada al ${side === 'local' ? 'equipo local' : 'visitante'}`),
+        buildEvent('tactics', `Formación ${formation} aplicada al ${side === 'local' ? 'equipo local' : 'visitante'}`, 'neutral', [], currentState.elapsedSeconds),
         ...currentState.events,
       ].slice(0, 25),
     }));
@@ -864,7 +1038,7 @@ function App() {
         [side]: currentState.scores[side] + 1,
       },
       events: [
-        buildEvent('goal', `${currentState.teams[team]} marca gol`, team),
+        buildEvent('goal', `${currentState.teams[team]} marca gol`, team, [], currentState.elapsedSeconds),
         ...currentState.events,
       ].slice(0, 25),
       ball: {
@@ -883,7 +1057,7 @@ function App() {
     updateMatchState((currentState) => ({
       ...currentState,
       events: [
-        buildEvent('assist', `${currentState.teams[team]} tiene asistencia`, team),
+        buildEvent('assist', `${currentState.teams[team]} tiene asistencia`, team, [], currentState.elapsedSeconds),
         ...currentState.events,
       ].slice(0, 25),
     }));
@@ -898,7 +1072,7 @@ function App() {
     updateMatchState((currentState) => ({
       ...currentState,
       events: [
-        buildEvent(color === 'yellow' ? 'yellow' : 'red', `${currentState.teams[team]} recibe tarjeta ${color}`, team),
+        buildEvent(color === 'yellow' ? 'yellow' : 'red', `${currentState.teams[team]} recibe tarjeta ${color}`, team, [], currentState.elapsedSeconds),
         ...currentState.events,
       ].slice(0, 25),
     }));
@@ -949,6 +1123,7 @@ function App() {
             `${formatPlayerEventLabel(outgoingPlayer, rosterKey)} sale. Entra ${formatPlayerEventLabel(incomingPlayer, rosterKey)}`,
             getMatchSide(rosterKey, currentState.clubSide),
             [outgoingPlayer, incomingPlayer],
+            currentState.elapsedSeconds,
           ),
           ...currentState.events,
         ].slice(0, 25),
@@ -1167,6 +1342,7 @@ function App() {
             `${formatPlayerEventLabel(injuredPlayer, rosterKey)} sale por lesión. Entra ${formatPlayerEventLabel(substitute, rosterKey)}`,
             getMatchSide(rosterKey, currentState.clubSide),
             [injuredPlayer, substitute],
+            currentState.elapsedSeconds,
           ),
         ],
       };
@@ -1252,7 +1428,7 @@ function App() {
         const nextState = {
           ...currentState,
           events: [
-            buildEvent(actionType, `${formatPlayerEventLabel(selectedPlayer, rosterKey)} ${actionLabel}`, matchSide, [selectedPlayer]),
+            buildEvent(actionType, `${formatPlayerEventLabel(selectedPlayer, rosterKey)} ${actionLabel}`, matchSide, [selectedPlayer], currentState.elapsedSeconds),
             ...currentState.events,
           ].slice(0, 25),
         };
@@ -1282,7 +1458,7 @@ function App() {
               bench: [...currentState.roster.bench, expelledPlayer],
             },
             events: [
-              buildEvent('red', `${formatPlayerEventLabel(selectedPlayer, rosterKey)} recibe tarjeta roja y es expulsada`, matchSide, [selectedPlayer]),
+              buildEvent('red', `${formatPlayerEventLabel(selectedPlayer, rosterKey)} recibe tarjeta roja y es expulsada`, matchSide, [selectedPlayer], currentState.elapsedSeconds),
               ...currentState.events,
             ].slice(0, 25),
           };
@@ -1299,7 +1475,7 @@ function App() {
             ],
           },
           events: [
-            buildEvent('red', `${formatPlayerEventLabel(selectedPlayer, rosterKey)} recibe tarjeta roja y es expulsada`, matchSide, [selectedPlayer]),
+            buildEvent('red', `${formatPlayerEventLabel(selectedPlayer, rosterKey)} recibe tarjeta roja y es expulsada`, matchSide, [selectedPlayer], currentState.elapsedSeconds),
             ...currentState.events,
           ].slice(0, 25),
         };
@@ -1314,7 +1490,7 @@ function App() {
           ),
         },
         events: [
-          buildEvent('injury', `${formatPlayerEventLabel(selectedPlayer, rosterKey)} se lesiona`, matchSide, [selectedPlayer]),
+          buildEvent('injury', `${formatPlayerEventLabel(selectedPlayer, rosterKey)} se lesiona`, matchSide, [selectedPlayer], currentState.elapsedSeconds),
           ...currentState.events,
         ].slice(0, 25),
       };
@@ -1397,7 +1573,7 @@ function App() {
       return {
         ...currentState,
         roster: updatedRoster,
-        events: [buildEvent(eventType, eventLabel, matchSide, updatedPlayer ? [updatedPlayer] : []), ...currentState.events].slice(0, 25),
+        events: [buildEvent(eventType, eventLabel, matchSide, updatedPlayer ? [updatedPlayer] : [], currentState.elapsedSeconds), ...currentState.events].slice(0, 25),
       };
     });
 
@@ -1429,6 +1605,8 @@ function App() {
             'red',
             `${playerToExpel.name} recibe tarjeta roja y es expulsada`,
             redCardModal.team,
+            [playerToExpel],
+            currentState.elapsedSeconds,
           ),
           ...currentState.events,
         ].slice(0, 25),
@@ -1455,6 +1633,7 @@ function App() {
             `${selectedPlayer.name} (#${selectedPlayer.number}) ${actionLabel}`,
             matchSide,
             [selectedPlayer],
+            currentState.elapsedSeconds,
           ),
           ...currentState.events,
         ].slice(0, 25),
@@ -1504,6 +1683,29 @@ function App() {
     }));
   };
 
+  const tacticsRoster = useMemo(() => {
+    const hasPlayersInRoster = [
+      ...(matchState.roster.local || []),
+      ...(matchState.roster.bench || []),
+      ...(matchState.roster.visitor || []),
+      ...(matchState.roster.visitorBench || []),
+    ].length > 0;
+
+    if (hasPlayersInRoster) {
+      return matchState.roster;
+    }
+
+    const fallbackPlayers = getAvailablePlayers();
+
+    return {
+      ...matchState.roster,
+      local: [],
+      bench: fallbackPlayers,
+      visitor: [],
+      visitorBench: cloneVisitorBenchPlayers(fallbackPlayers),
+    };
+  }, [matchState]);
+
   return (
     <main className="app-shell" ref={appRootRef}>
       <div className="app-frame">
@@ -1543,6 +1745,9 @@ function App() {
                   onStartMatch={handleOpenStartMatch}
                   onToggleRunning={handleToggleRunning}
                   onPause={handlePause}
+                  onEndFirstHalf={handleEndFirstHalf}
+                  onStartSecondHalf={handleStartSecondHalf}
+                  onAdvanceFiveMinutes={handleAdvanceFiveMinutes}
                   onReset={handleReset}
                   onGoal={handleGoal}
                   onAssist={handleAssist}
@@ -1554,6 +1759,7 @@ function App() {
                   onInitiateYellowCard={handleInitiateYellowCard}
                   onPlaceVisitorTeam={handlePlaceVisitorTeam}
                   onRemoveVisitorTeam={handleRemoveVisitorTeam}
+                  teamAppearance={matchState.teamAppearance}
                 />
                 <PitchField
                   teams={matchState.teams}
@@ -1573,10 +1779,6 @@ function App() {
                 <MatchEvents
                   events={matchState.events}
                   teamAppearance={matchState.teamAppearance}
-                  onStartNewMatch={() => {
-                    setActiveSection('calendar');
-                    setStartMatchOpen(false);
-                  }}
                 />
               </div>
             </section>
@@ -1690,7 +1892,7 @@ function App() {
 
           {activeSection === 'training' && (
             <TrainingDashboard
-              roster={matchState.roster}
+              roster={tacticsRoster}
               trainingSessions={matchState.trainingSessions}
               onSaveTraining={handleSaveTraining}
               onDeleteTraining={handleDeleteTraining}
@@ -1732,7 +1934,7 @@ function App() {
 
       {(tacticsBoardOpen || activeSection === 'tactics') && (
         <TacticsBoardModal
-          roster={matchState.roster}
+          roster={tacticsRoster}
           ball={matchState.ball}
           teamAppearance={matchState.teamAppearance}
           onClose={() => {

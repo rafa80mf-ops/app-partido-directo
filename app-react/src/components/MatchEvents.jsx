@@ -6,6 +6,7 @@ function getEventEmoji(type) {
     assist: '🅰️',
     yellow: '🟨',
     red: '🟥',
+    injury: null,
     substitution: '🔄',
     info: 'ℹ️',
     reset: '⟲',
@@ -14,8 +15,19 @@ function getEventEmoji(type) {
   return mapping[type] || '📌';
 }
 
-export default function MatchEvents({ events, onStartNewMatch, teamAppearance }) {
-  const canStartNewMatch = events.some((event) => event.label.includes('Listo para iniciar uno nuevo'));
+function getEventMinuteLabel(event) {
+  if (Number.isFinite(event?.elapsedSeconds)) {
+    return `${Math.floor(event.elapsedSeconds / 60)}'`;
+  }
+
+  if (Number.isFinite(event?.minute)) {
+    return `${Math.floor(event.minute)}'`;
+  }
+
+  return null;
+}
+
+export default function MatchEvents({ events, teamAppearance }) {
 
   const getActionLabel = (event) => {
     if (!event.players?.length) return event.label;
@@ -41,7 +53,8 @@ export default function MatchEvents({ events, onStartNewMatch, teamAppearance })
         <ul className="event-list">
           {events.map((event) => (
             <li key={event.id} className="event-item">
-              <span className={`event-emoji ${event.team === 'local' ? 'local-event-emoji' : event.team === 'visitor' ? 'visitor-event-emoji' : ''} ${event.team === 'local' && teamAppearance?.shape === 'shirt' ? 'appearance-shirt' : ''}`} style={event.team === 'local' ? { '--team-color': teamAppearance?.color || '#facc15', '--team-color-secondary': teamAppearance?.secondaryColor || '#111827' } : undefined}>{event.type === 'goal' ? <FootballBall className="event-ball" /> : getEventEmoji(event.type)}</span>
+              {getEventMinuteLabel(event) && <span className="event-minute">{getEventMinuteLabel(event)}</span>}
+              <span className={`event-emoji ${event.team === 'local' ? 'local-event-emoji' : event.team === 'visitor' ? 'visitor-event-emoji' : ''} ${event.team === 'local' && teamAppearance?.shape === 'shirt' ? 'appearance-shirt' : ''} ${event.type === 'injury' ? 'injury-event-emoji' : ''}`} style={event.team === 'local' ? { '--team-color': teamAppearance?.color || '#facc15', '--team-color-secondary': teamAppearance?.secondaryColor || '#111827' } : undefined}>{event.type === 'goal' ? <FootballBall className="event-ball" /> : event.type === 'injury' ? <span className="injury-cross">✚</span> : getEventEmoji(event.type)}</span>
               <div>
                 {event.players?.length > 0 && (
                   <div className="event-player-list">
@@ -63,14 +76,6 @@ export default function MatchEvents({ events, onStartNewMatch, teamAppearance })
             </li>
           ))}
         </ul>
-      )}
-
-      {canStartNewMatch && (
-        <div className="event-start-new">
-          <button type="button" className="primary-button start-new-match-button" onClick={onStartNewMatch}>
-            🏁 Iniciar nuevo partido
-          </button>
-        </div>
       )}
     </section>
   );

@@ -9,6 +9,9 @@ export default function ControlPanel({
   onStartMatch,
   onToggleRunning,
   onPause,
+  onEndFirstHalf,
+  onStartSecondHalf,
+  onAdvanceFiveMinutes,
   onReset,
   onGoal,
   onAssist,
@@ -20,6 +23,7 @@ export default function ControlPanel({
   onInitiateYellowCard,
   onPlaceVisitorTeam,
   onRemoveVisitorTeam,
+  teamAppearance,
 }) {
   const buttonBaseClass = 'action-button';
   const [localActionsOpen, setLocalActionsOpen] = useState(false);
@@ -51,6 +55,18 @@ export default function ControlPanel({
         <button type="button" className={buttonBaseClass} onClick={onFinalize}>
           🏁 Finalizar partido
         </button>
+        <button type="button" className={`${buttonBaseClass} first-half-button`} onClick={onEndFirstHalf} disabled={!lineupConfirmed}>
+          ⏱️ Fin 1ª parte
+        </button>
+      </div>
+
+      <div className="control-row">
+        <button type="button" className={`${buttonBaseClass} second-half-button`} onClick={onStartSecondHalf} disabled={!lineupConfirmed}>
+          ▶️ Iniciar 2ª parte (45:00)
+        </button>
+        <button type="button" className={`${buttonBaseClass} test-time-button`} onClick={onAdvanceFiveMinutes} disabled={!lineupConfirmed}>
+          ⏩ +5 min (prueba)
+        </button>
       </div>
 
       <button
@@ -58,8 +74,9 @@ export default function ControlPanel({
         className="team-actions-toggle local-actions-toggle"
         onClick={() => setLocalActionsOpen((isOpen) => !isOpen)}
         aria-expanded={localActionsOpen}
+        style={{ '--team-color': teamAppearance?.color || '#facc15' }}
       >
-        <span>🟢 Acciones mi equipo</span>
+        <span><i className="team-actions-marker" aria-hidden="true" /> Acciones mi equipo</span>
         <span>{localActionsOpen ? '▴' : '▾'}</span>
       </button>
 
@@ -69,7 +86,7 @@ export default function ControlPanel({
         onClick={() => setVisitorActionsOpen((isOpen) => !isOpen)}
         aria-expanded={visitorActionsOpen}
       >
-        <span>🔵 Acciones visitante</span>
+        <span><i className="team-actions-marker visitor" aria-hidden="true" /> Acciones visitante</span>
         <span>{visitorActionsOpen ? '▴' : '▾'}</span>
       </button>
 
@@ -80,7 +97,7 @@ export default function ControlPanel({
           <button type="button" className={buttonBaseClass} onClick={() => onCard('local', 'yellow')}>🟨 Amarilla</button>
           <button type="button" className={buttonBaseClass} onClick={() => onCard('local', 'red')}>🟥 Roja</button>
           <button type="button" className={buttonBaseClass} onClick={() => onSubstitution('local')}>🔄 Cambio</button>
-          <button type="button" className={buttonBaseClass} onClick={onInitiateInjury}>🩹 Lesión</button>
+          <button type="button" className={buttonBaseClass} onClick={onInitiateInjury}><span className="injury-cross">✚</span> Lesión</button>
         </div>
       )}
 
