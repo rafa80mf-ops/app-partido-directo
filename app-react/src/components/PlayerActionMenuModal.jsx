@@ -1,16 +1,9 @@
 import FootballBall from './FootballBall';
+import { PLAYER_ACTIONS } from '../data/actionCatalog';
 
-const actions = [
-  { type: 'goal', label: 'Gol' },
-  { type: 'assist', label: '🅰️ Asistencia' },
-  { type: 'yellow', label: '🟨 Tarjeta amarilla' },
-  { type: 'red', label: '🟥 Tarjeta roja' },
-  { type: 'injury', label: 'Lesión' },
-  { type: 'substitution', label: '🔄 Cambio' },
-  { type: 'edit-number', label: '✏️ Dorsal' },
-];
+export default function PlayerActionMenuModal({ player, team, onSelectAction, onCancel, enabledPlayerActions = [] }) {
+  const actions = PLAYER_ACTIONS.filter((action) => enabledPlayerActions.includes(action.type));
 
-export default function PlayerActionMenuModal({ player, team, onSelectAction, onCancel }) {
   return (
     <div className="modal-overlay" onClick={onCancel}>
       <div className="modal-content player-action-menu" onClick={(event) => event.stopPropagation()}>

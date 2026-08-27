@@ -21,8 +21,6 @@ export default function ControlPanel({
   selectingInjured,
   onInitiateInjury,
   onInitiateYellowCard,
-  onPlaceVisitorTeam,
-  onRemoveVisitorTeam,
   teamAppearance,
 }) {
   const buttonBaseClass = 'action-button';
@@ -108,8 +106,6 @@ export default function ControlPanel({
           <button type="button" className={buttonBaseClass} onClick={() => onCard('visitor', 'yellow')}>🟨 Amarilla visitante</button>
           <button type="button" className={buttonBaseClass} onClick={() => onCard('visitor', 'red')}>🟥 Roja visitante</button>
           <button type="button" className={buttonBaseClass} onClick={() => onSubstitution('visitor')}>🔄 Cambio visitante</button>
-          <button type="button" className={buttonBaseClass} onClick={onPlaceVisitorTeam}>🧍 Colocar equipo visitante</button>
-          <button type="button" className={buttonBaseClass} onClick={onRemoveVisitorTeam}>🚫 Retirar equipo visitante</button>
         </div>
       )}
 

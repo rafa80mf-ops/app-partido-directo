@@ -776,6 +776,23 @@
   background: #ffffff;
 }
 
+.empty-match-report {
+  display: grid;
+  min-height: 420px;
+  place-items: center;
+  border: 1px solid #dbe3ed;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.empty-match-report img {
+  width: min(240px, 52%);
+  max-height: 240px;
+  object-fit: contain;
+  opacity: 0.3;
+  filter: blur(4px);
+}
+
 .match-report-heading {
   display: flex;
   align-items: start;
@@ -3192,6 +3209,73 @@
   box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
 }
 
+.events-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: auto;
+  min-width: 88px;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: linear-gradient(135deg, #0f766e, #0d9488);
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 900;
+  gap: 12px;
+}
+
+.events-tabs {
+  display: flex;
+  gap: 6px;
+  margin: 12px 0 10px;
+  border-bottom: 1px solid #dbe3ed;
+}
+
+.events-tabs button {
+  min-height: 30px;
+  padding: 4px 10px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.events-tabs button.active {
+  border-bottom-color: #0f766e;
+  color: #0f766e;
+}
+
+.player-action-settings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 12px;
+}
+
+.player-action-setting {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 6px 4px;
+  color: #334155;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.player-action-setting input {
+  accent-color: #0f766e;
+  flex: 0 0 auto;
+}
+
 .controls-panel {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -3323,7 +3407,7 @@
 .team-actions-panel {
   display: grid;
   grid-column: span 2;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
   padding: 6px;
   border: 1px solid #dcfce7;
@@ -3332,8 +3416,9 @@
 }
 
 .team-actions-panel .action-button {
-  aspect-ratio: 1;
   display: grid;
+  min-height: 30px;
+  padding: 4px 6px;
   place-items: center;
   white-space: normal;
   line-height: 1.15;
@@ -3696,7 +3781,7 @@
 
   .team-actions-panel {
     grid-column: 1 / -1;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .local-actions-toggle,
@@ -3710,6 +3795,7 @@
   }
 
   .team-actions-panel .action-button {
+    min-height: 30px;
     white-space: normal;
   }
 

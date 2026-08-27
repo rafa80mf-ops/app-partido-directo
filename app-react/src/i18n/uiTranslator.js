@@ -154,6 +154,7 @@ const EN_TRANSLATIONS = {
   'Pausar': 'Pause',
   'Reiniciar': 'Reset',
   'Finalizar partido': 'Finish match',
+  '¿Quieres iniciar la segunda parte?': 'Do you want to start the second half?',
   'Acciones mi equipo': 'My team actions',
   'Acciones visitante': 'Away actions',
   'Gol': 'Goal',

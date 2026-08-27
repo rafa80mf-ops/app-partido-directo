@@ -190,7 +190,7 @@ function normalizeTechnicalStaffForReport(rawTechnicalStaff) {
   return [];
 }
 
-export default function HistoryDashboard({ matches, onEditMatch, onDeleteMatch, teamAppearance, appLanguage = 'es' }) {
+export default function HistoryDashboard({ matches, onEditMatch, onDeleteMatch, teamAppearance, clubCrest, appLanguage = 'es' }) {
   const [view, setView] = useState('reports');
   const [selectedMatchId, setSelectedMatchId] = useState(matches.at(-1)?.id || null);
   const [shareMessage, setShareMessage] = useState('');
@@ -208,15 +208,20 @@ export default function HistoryDashboard({ matches, onEditMatch, onDeleteMatch, 
   }), [matches]);
 
   useEffect(() => {
-    if (!selectedMatchId && matches.length > 0) {
-      setSelectedMatchId(matches[matches.length - 1].id);
-      return;
-    }
-
     if (selectedMatchId && !matches.some((match) => match.id === selectedMatchId)) {
       setSelectedMatchId(matches.at(-1)?.id || null);
     }
   }, [matches, selectedMatchId]);
+
+  const toggleCompetition = (type) => {
+    setOpenCompetition((current) => {
+      const isClosing = current === type;
+      if (isClosing) {
+        setSelectedMatchId(null);
+      }
+      return isClosing ? null : type;
+    });
+  };
 
   const handleShareReport = async (match) => {
     const text = buildMatchReportText(match);
@@ -266,7 +271,7 @@ export default function HistoryDashboard({ matches, onEditMatch, onDeleteMatch, 
           <aside className="report-match-list" aria-label="Partidos finalizados">
             {Object.entries(matchesByType).map(([type, typeMatches]) => (
               <section className="report-competition-group" key={type}>
-                <button type="button" className="report-competition-toggle" onClick={() => setOpenCompetition((current) => current === type ? null : type)} aria-expanded={openCompetition === type}>
+                <button type="button" className="report-competition-toggle" onClick={() => toggleCompetition(type)} aria-expanded={openCompetition === type}>
                   <span><span className="competition-icon" aria-hidden="true">{type === 'Liga' ? <img src="/fcf-logo.svg" alt="" /> : <img src="/club-crest.svg" alt="" />}</span>{type === 'Liga' ? 'Liga' : 'Amistosos'} ({typeMatches.length})</span><span aria-hidden="true">{openCompetition === type ? '⌃' : '⌄'}</span>
                 </button>
                 {openCompetition === type && typeMatches.length === 0 && <p className="empty-state report-empty-competition">Sin actas en esta competición.</p>}
@@ -274,7 +279,7 @@ export default function HistoryDashboard({ matches, onEditMatch, onDeleteMatch, 
               </section>
             ))}
           </aside>
-          {selectedMatch && <article className="match-report">
+          {selectedMatch ? <article className="match-report">
             <div className="match-report-heading"><div><span className="report-competition-badge">{normalizeMatchType(selectedMatch.type) === 'Amistoso' ? <><img src="/club-crest.svg" alt="" /> Amistoso</> : <><img src="/fcf-logo.svg" alt="" /> Liga</>}</span><h2>{selectedMatch.teams.local} {selectedMatch.scores.local} - {selectedMatch.scores.visitor} {selectedMatch.teams.visitor}</h2><p>🗓️ {selectedMatch.finishedAt}</p></div><div className="match-report-actions"><button type="button" className="icon-report-button edit-report-button" onClick={() => onEditMatch(selectedMatch)} title="Modificar acta" aria-label="Modificar acta">✎</button><button type="button" className="icon-report-button share-report-button" onClick={() => handleShareReport(selectedMatch)} title="Enviar acta" aria-label="Enviar acta">↗</button><button type="button" className="icon-report-button download-report-button" onClick={() => handleDownloadReport(selectedMatch)} title="Guardar acta" aria-label="Guardar acta">⬇</button><button type="button" className="icon-report-button delete-report-button" onClick={() => { if (window.confirm(translateUiText('¿Borrar esta acta?', appLanguage))) onDeleteMatch(selectedMatch.id); }} title="Borrar acta" aria-label="Borrar acta">⌫</button></div></div>
             {selectedTechnicalStaff.length > 0 && <>
               <h3 className="report-title">Cuerpo técnico</h3>
@@ -284,7 +289,7 @@ export default function HistoryDashboard({ matches, onEditMatch, onDeleteMatch, 
             </>}
             <h3 className="report-title">Acta</h3>
             {selectedEvents.length === 0 ? <p className="empty-state">No hay acciones registradas.</p> : <ol className="report-event-list">{sortEventsByMatchTime(selectedEvents).map((event) => <li key={event.id} className={`${event.team === 'visitor' ? 'visitor-event' : 'local-event'} ${event.type === 'yellow' ? 'yellow-card-event' : ''}`}><span className="report-event-minute">{getEventMinuteLabel(event) || "--'"}</span><span className={`report-event-icon ${event.type === 'yellow' ? 'yellow-card-icon' : ''} ${event.team === 'visitor' ? 'visitor-action-icon' : 'local-action-icon'} ${event.team === 'local' && selectedAppearance?.shape === 'shirt' ? 'appearance-shirt' : ''}`} style={event.team === 'local' ? { '--team-color': selectedAppearance?.color || '#facc15' } : undefined} aria-hidden="true">{event.type === 'goal' ? <FootballBall className="event-ball" /> : getEventIcon(event.type)}</span><span>{formatReportEventLabel(event)}</span></li>)}</ol>}
-          </article>}
+          </article> : <div className="empty-match-report" aria-label="Ninguna acta seleccionada"><img src={clubCrest?.trim() || '/club-crest.svg'} alt="Escudo del club" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = '/club-crest.svg'; }} /></div>}
         </div>
       ) : (
         <div className="stats-table-wrap"><table className="stats-table"><thead><tr><th>Jugadora</th><th>Min.</th><th>Goles</th><th>Asist.</th><th>Amar.</th><th>Rojas</th></tr></thead><tbody>{playerStats.map((player) => <tr key={player.key}><td><strong>{player.number}</strong> {player.name}</td><td>{player.minutes}</td><td>{player.goals}</td><td>{player.assists}</td><td>{player.yellowCards}</td><td>{player.redCards}</td></tr>)}</tbody></table></div>

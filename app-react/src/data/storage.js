@@ -1,3 +1,5 @@
+import { DEFAULT_ENABLED_PLAYER_ACTIONS, normalizeEnabledPlayerActions } from './actionCatalog';
+
 export const STORAGE_KEY = 'partido_directo_match_state_v1';
 const ROSTER_BACKUP_KEY = 'partido_directo_roster_backup_v1';
 export const ROSTER_SIZE = 20;
@@ -141,6 +143,15 @@ function normalizeTrainingSessions(rawValue) {
       };
     })
     .filter(Boolean)
+    .sort((firstTraining, secondTraining) => {
+      const byDate = firstTraining.date.localeCompare(secondTraining.date);
+      if (byDate !== 0) {
+        return byDate;
+      }
+
+      return firstTraining.number - secondTraining.number;
+    })
+    .map((training, index) => ({ ...training, number: index + 1 }))
     .sort((firstTraining, secondTraining) => secondTraining.date.localeCompare(firstTraining.date));
 }
 
@@ -344,6 +355,7 @@ export function createEmptyMatchState() {
     leagueName: DEFAULT_LEAGUE_NAME,
     leagueLogo: DEFAULT_LEAGUE_LOGO,
     appLanguage: DEFAULT_APP_LANGUAGE,
+    enabledPlayerActions: [...DEFAULT_ENABLED_PLAYER_ACTIONS],
     teamAppearance: { ...DEFAULT_TEAM_APPEARANCE },
     clubSide: 'local',
     calendar: [],
@@ -404,6 +416,7 @@ export function normalizeMatchState(rawState) {
       ? rawState.leagueLogo.trim()
       : DEFAULT_LEAGUE_LOGO,
     appLanguage: normalizeAppLanguage(rawState.appLanguage),
+    enabledPlayerActions: normalizeEnabledPlayerActions(rawState.enabledPlayerActions),
     teamAppearance: {
       color: typeof rawState.teamAppearance?.color === 'string' && rawState.teamAppearance.color.trim()
         ? rawState.teamAppearance.color

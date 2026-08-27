@@ -31,6 +31,7 @@ import {
 } from './data/storage';
 import { saveMatchSnapshot } from './data/localDb';
 import { translateUiText, translateUiTree } from './i18n/uiTranslator';
+import { PLAYER_ACTIONS, normalizeEnabledPlayerActions } from './data/actionCatalog';
 
 function buildEvent(type, label, team = 'neutral', players = [], elapsedSeconds = null) {
   const safeElapsedSeconds = Number.isFinite(elapsedSeconds)
@@ -256,6 +257,8 @@ function App() {
   const [halfTimeNoticeShown, setHalfTimeNoticeShown] = useState(false);
   const [firstHalfAddedMinutes, setFirstHalfAddedMinutes] = useState(0);
   const [firstHalfAddedConfigured, setFirstHalfAddedConfigured] = useState(false);
+  const [secondHalfAddedMinutes, setSecondHalfAddedMinutes] = useState(0);
+  const [secondHalfAddedConfigured, setSecondHalfAddedConfigured] = useState(false);
   const [fullTimeNoticeShown, setFullTimeNoticeShown] = useState(false);
   const [finalizeConfirmOpen, setFinalizeConfirmOpen] = useState(false);
   const [equipmentOpen, setEquipmentOpen] = useState(false);
@@ -386,9 +389,43 @@ function App() {
           ...currentState.events,
         ].slice(0, 25),
       }));
+      return;
     }
 
-  }, [matchState.isRunning, matchState.elapsedSeconds, halfTimeNoticeShown, fullTimeNoticeShown, matchState.appLanguage, firstHalfAddedConfigured, firstHalfAddedMinutes]);
+    if (matchState.elapsedSeconds >= 90 * 60 && !secondHalfAddedConfigured && !fullTimeNoticeShown) {
+      playHalfTimeAlertSound();
+      const addedMinutesInput = window.prompt(
+        translateUiText('Minuto 90. Indica minutos de descuento para la segunda parte (0-15).', matchState.appLanguage),
+        `${secondHalfAddedMinutes}`,
+      );
+      const normalizedInput = (addedMinutesInput ?? '').trim();
+
+      if (!normalizedInput) {
+        setSecondHalfAddedMinutes(0);
+        setSecondHalfAddedConfigured(true);
+        window.alert(translateUiText('Sin descuento indicado. El reloj seguira hasta que pulses Finalizar partido.', matchState.appLanguage));
+        return;
+      }
+
+      const parsedAddedMinutes = normalizedInput ? Number.parseInt(normalizedInput, 10) : 0;
+      const safeAddedMinutes = Number.isFinite(parsedAddedMinutes)
+        ? Math.max(0, Math.min(15, parsedAddedMinutes))
+        : 0;
+
+      setSecondHalfAddedMinutes(safeAddedMinutes);
+      setSecondHalfAddedConfigured(true);
+      updateMatchState((currentState) => ({
+        ...currentState,
+        events: safeAddedMinutes > 0
+          ? [
+              buildEvent('info', `Descuento segunda parte: +${safeAddedMinutes} minuto(s)`, 'neutral', [], currentState.elapsedSeconds),
+              ...currentState.events,
+            ].slice(0, 25)
+          : currentState.events,
+      }));
+    }
+
+  }, [matchState.isRunning, matchState.elapsedSeconds, halfTimeNoticeShown, fullTimeNoticeShown, matchState.appLanguage, firstHalfAddedConfigured, firstHalfAddedMinutes, secondHalfAddedConfigured, secondHalfAddedMinutes]);
 
   useEffect(() => {
     saveMatchState(matchState);
@@ -513,6 +550,32 @@ function App() {
     }));
   };
 
+  const handleUpdatePlayerActions = (actionType) => {
+    updateMatchState((currentState) => {
+      const enabledActions = normalizeEnabledPlayerActions(currentState.enabledPlayerActions);
+      const nextActions = enabledActions.includes(actionType)
+        ? enabledActions.filter((enabledAction) => enabledAction !== actionType)
+        : [...enabledActions, actionType];
+
+      return {
+        ...currentState,
+        enabledPlayerActions: nextActions,
+      };
+    });
+  };
+
+  const renumberTrainingSessions = (sessions) => [...sessions]
+    .sort((firstTraining, secondTraining) => {
+      const byDate = String(firstTraining.date || '').localeCompare(String(secondTraining.date || ''));
+      if (byDate !== 0) {
+        return byDate;
+      }
+
+      return (Number(firstTraining.number) || 0) - (Number(secondTraining.number) || 0);
+    })
+    .map((training, index) => ({ ...training, number: index + 1 }))
+    .sort((firstTraining, secondTraining) => secondTraining.date.localeCompare(firstTraining.date));
+
   const handleSaveTraining = (training) => {
     updateMatchState((currentState) => {
       const nextTraining = {
@@ -521,24 +584,28 @@ function App() {
         number: Math.max(1, Number(training.number) || 1),
       };
       const currentTrainingSessions = Array.isArray(currentState.trainingSessions) ? currentState.trainingSessions : [];
-      const trainingSessions = [
+      const nextTrainingSessions = [
         ...currentTrainingSessions.filter((item) => item.id !== nextTraining.id && !(item.date === nextTraining.date && item.number === nextTraining.number)),
         nextTraining,
-      ].sort((firstTraining, secondTraining) => secondTraining.date.localeCompare(firstTraining.date));
+      ];
 
       return {
         ...currentState,
-        trainingSessions,
+        trainingSessions: renumberTrainingSessions(nextTrainingSessions),
       };
     });
   };
 
   const handleDeleteTraining = (trainingId) => {
-    updateMatchState((currentState) => ({
-      ...currentState,
-      trainingSessions: (Array.isArray(currentState.trainingSessions) ? currentState.trainingSessions : [])
-        .filter((training) => training.id !== trainingId),
-    }));
+    updateMatchState((currentState) => {
+      const remainingTrainingSessions = (Array.isArray(currentState.trainingSessions) ? currentState.trainingSessions : [])
+        .filter((training) => training.id !== trainingId);
+
+      return {
+        ...currentState,
+        trainingSessions: renumberTrainingSessions(remainingTrainingSessions),
+      };
+    });
   };
 
   const handleUpdateTechnicalStaff = (technicalStaff) => {
@@ -658,6 +725,10 @@ function App() {
   };
 
   const handleStartSecondHalf = () => {
+    if (!window.confirm(translateUiText('¿Quieres iniciar la segunda parte?', matchState.appLanguage))) {
+      return;
+    }
+
     updateMatchState((currentState) => ({
       ...currentState,
       elapsedSeconds: 45 * 60,
@@ -701,7 +772,7 @@ function App() {
         visitorBench: cloneVisitorBenchPlayers(allPlayers),
       },
       ball: { x: 50, y: 50 },
-      events: [buildEvent('info', `${local} - ${visitor} creado al instante`, 'neutral', [], currentState.elapsedSeconds)],
+      events: [],
     }));
     setStartMatchOpen(false);
     setStartMatchMode('default');
@@ -710,6 +781,8 @@ function App() {
     setLineupSelectionOpen(true);
     setFirstHalfAddedMinutes(0);
     setFirstHalfAddedConfigured(false);
+    setSecondHalfAddedMinutes(0);
+    setSecondHalfAddedConfigured(false);
     setHalfTimeNoticeShown(false);
     setFullTimeNoticeShown(false);
   };
@@ -725,6 +798,7 @@ function App() {
     resetState.teamAppearance = { ...(matchState.teamAppearance || DEFAULT_TEAM_APPEARANCE) };
     resetState.technicalStaff = (matchState.technicalStaff || []).map((member) => ({ ...member }));
     resetState.appLanguage = matchState.appLanguage;
+    resetState.enabledPlayerActions = [...(matchState.enabledPlayerActions || [])];
     resetState.calendar = [...matchState.calendar];
     resetState.currentSeason = matchState.currentSeason;
     resetState.previousSeasons = [...matchState.previousSeasons];
@@ -751,6 +825,8 @@ function App() {
     setActiveSection('live');
     setFirstHalfAddedMinutes(0);
     setFirstHalfAddedConfigured(false);
+    setSecondHalfAddedMinutes(0);
+    setSecondHalfAddedConfigured(false);
     setHalfTimeNoticeShown(false);
     setFullTimeNoticeShown(false);
   };
@@ -831,12 +907,14 @@ function App() {
         visitorBench: cloneVisitorBenchPlayers(allPlayers),
       },
       ball: { x: 50, y: 50 },
-      events: [buildEvent('info', `${match.local} - ${match.visitor} seleccionado del calendario`, 'neutral', [], currentState.elapsedSeconds)],
+      events: [],
     }));
     setCalendarOpen(false);
     setActiveSection('live');
     setStartMatchOpen(false);
     setLineupSelectionOpen(true);
+    setSecondHalfAddedMinutes(0);
+    setSecondHalfAddedConfigured(false);
     setHalfTimeNoticeShown(false);
     setFullTimeNoticeShown(false);
   };
@@ -899,7 +977,7 @@ function App() {
         calendar: activeCalendarMatchId
           ? currentState.calendar.filter((match) => match.id !== activeCalendarMatchId)
           : currentState.calendar,
-        events: [buildEvent('info', 'Partido finalizado. Listo para iniciar uno nuevo.', 'neutral', [], currentState.elapsedSeconds)],
+        events: [],
       };
     });
     setActiveCalendarMatchId(null);
@@ -910,6 +988,8 @@ function App() {
     setActiveSection('live');
     setFirstHalfAddedMinutes(0);
     setFirstHalfAddedConfigured(false);
+    setSecondHalfAddedMinutes(0);
+    setSecondHalfAddedConfigured(false);
     setHalfTimeNoticeShown(false);
     setFullTimeNoticeShown(false);
     setFinalizeConfirmOpen(false);
@@ -1016,10 +1096,12 @@ function App() {
             }))
           : currentState.roster.visitor,
       },
-      events: [
-        buildEvent('tactics', `Formación ${formation} aplicada al ${side === 'local' ? 'equipo local' : 'visitante'}`, 'neutral', [], currentState.elapsedSeconds),
-        ...currentState.events,
-      ].slice(0, 25),
+      events: currentState.isRunning || currentState.elapsedSeconds > 0
+        ? [
+            buildEvent('tactics', `Formación ${formation} aplicada al ${side === 'local' ? 'equipo local' : 'visitante'}`, 'neutral', [], currentState.elapsedSeconds),
+            ...currentState.events,
+          ].slice(0, 25)
+        : currentState.events,
     }));
   };
 
@@ -1481,6 +1563,17 @@ function App() {
         };
       }
 
+      const genericAction = PLAYER_ACTIONS.find((action) => action.type === actionType);
+      if (genericAction && ['foul', 'penalty', 'offside', 'corner'].includes(actionType)) {
+        return {
+          ...currentState,
+          events: [
+            buildEvent(actionType, `${formatPlayerEventLabel(selectedPlayer, rosterKey)}: ${genericAction.label}`, matchSide, [selectedPlayer], currentState.elapsedSeconds),
+            ...currentState.events,
+          ].slice(0, 25),
+        };
+      }
+
       return {
         ...currentState,
         roster: {
@@ -1657,32 +1750,6 @@ function App() {
     setYellowCardModal(true);
   };
 
-  const handleRemoveVisitorTeam = () => {
-    updateMatchState((currentState) => ({
-      ...currentState,
-      roster: {
-        ...currentState.roster,
-        visitor: [],
-        visitorBench: [],
-      },
-    }));
-  };
-
-  const handlePlaceVisitorTeam = () => {
-    updateMatchState((currentState) => ({
-      ...currentState,
-      roster: {
-        ...currentState.roster,
-        visitor: cloneVisitorPlayers((currentState.roster.local || []).map((player) => ({
-          ...player,
-          x: Number(player.x) || 50,
-          y: Number(player.y) || 50,
-        }))),
-        visitorBench: cloneVisitorBenchPlayers(currentState.roster.bench || []),
-      },
-    }));
-  };
-
   const tacticsRoster = useMemo(() => {
     const hasPlayersInRoster = [
       ...(matchState.roster.local || []),
@@ -1757,8 +1824,6 @@ function App() {
                   selectingInjured={selectingInjured}
                   onInitiateInjury={handleInitiateInjury}
                   onInitiateYellowCard={handleInitiateYellowCard}
-                  onPlaceVisitorTeam={handlePlaceVisitorTeam}
-                  onRemoveVisitorTeam={handleRemoveVisitorTeam}
                   teamAppearance={matchState.teamAppearance}
                 />
                 <PitchField
@@ -1779,6 +1844,8 @@ function App() {
                 <MatchEvents
                   events={matchState.events}
                   teamAppearance={matchState.teamAppearance}
+                  enabledPlayerActions={matchState.enabledPlayerActions}
+                  onUpdatePlayerActions={handleUpdatePlayerActions}
                 />
               </div>
             </section>
@@ -1887,7 +1954,7 @@ function App() {
           )}
 
           {activeSection === 'history' && (
-            <HistoryDashboard matches={matchState.history} teamAppearance={matchState.teamAppearance} appLanguage={matchState.appLanguage} onEditMatch={handleEditHistoryMatch} onDeleteMatch={handleDeleteHistoryMatch} />
+            <HistoryDashboard matches={matchState.history} teamAppearance={matchState.teamAppearance} clubCrest={matchState.clubCrest} appLanguage={matchState.appLanguage} onEditMatch={handleEditHistoryMatch} onDeleteMatch={handleDeleteHistoryMatch} />
           )}
 
           {activeSection === 'training' && (
@@ -1987,6 +2054,7 @@ function App() {
           team={playerActionMenu.team}
           onSelectAction={handlePlayerAction}
           onCancel={() => setPlayerActionMenu(null)}
+          enabledPlayerActions={matchState.enabledPlayerActions}
         />
       )}
 

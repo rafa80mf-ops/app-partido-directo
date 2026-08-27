@@ -248,6 +248,12 @@ export default function TrainingDashboard({ roster, trainingSessions = [], onSav
       .filter((training) => training.date === selectedDate)
       .reduce((highestNumber, training) => Math.max(highestNumber, Number(training.number) || 0), 0);
 
+    setSelectedSessionId(null);
+    setTrainingNumber(Math.max(maxNumberForDate, safeCurrentNumber) + 1);
+    setAttendance({});
+    setAbsenceReasons({});
+    setShowTrainingHistory(false);
+
     onSaveTraining({
       id: selectedSession?.id,
       date: selectedDate,
@@ -259,12 +265,6 @@ export default function TrainingDashboard({ roster, trainingSessions = [], onSav
         .filter((player) => attendance[player.id] === 'absent')
         .map((player) => [player.id, absenceReasons[player.id] || 'otros'])),
     });
-
-    setSelectedSessionId(null);
-    setTrainingNumber(Math.max(maxNumberForDate, safeCurrentNumber) + 1);
-    setAttendance({});
-    setAbsenceReasons({});
-    setShowTrainingHistory(false);
   };
 
   return (
