@@ -1978,6 +1978,29 @@
   font-size: 0.62rem;
 }
 
+.selected-action-badge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+  background: #f8fafc;
+  color: #111827;
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.2);
+  font-size: 0.8rem;
+  z-index: 3;
+}
+
+.player-token.visitor-player .selected-action-badge,
+.bench-player.visitor-bench .selected-action-badge {
+  background: #dbeafe;
+}
+
 .player-name {
   position: absolute;
   top: calc(100% + 2px);
@@ -3545,6 +3568,35 @@
   place-items: center;
   white-space: normal;
   line-height: 1.15;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.team-actions-panel .action-button.selected-action-btn,
+.local-actions-panel .action-button.selected-action-btn,
+.visitor-actions-panel .action-button.selected-action-btn {
+  background: linear-gradient(135deg, #0284c7, #2563eb) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 16px rgba(37, 99, 235, 0.8), inset 0 0 0 2px #38bdf8 !important;
+  border-color: #38bdf8 !important;
+  transform: scale(1.03);
+  font-weight: 800;
+}
+
+.team-actions-panel .action-button .check-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 5px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #2563eb;
+  font-size: 0.72rem;
+  font-weight: 900;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+  vertical-align: middle;
 }
 
 .local-actions-panel {
@@ -3554,7 +3606,12 @@
 }
 
 .local-actions-panel .action-button {
-  background: linear-gradient(135deg, #be123c, #e11d48);
+  background: linear-gradient(135deg, #881337, #9f1239);
+  color: #ffffff;
+}
+
+.local-actions-panel .action-button:hover {
+  background: linear-gradient(135deg, #9f1239, #be123c);
 }
 
 .visitor-actions-panel .action-button {
@@ -4383,6 +4440,12 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin-bottom: 16px;
+}
+
+.player-action-options .action-button.active {
+  background: #dcfce7;
+  border-color: #16a34a;
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.15);
 }
 
 .player-action-options .action-button:last-child {

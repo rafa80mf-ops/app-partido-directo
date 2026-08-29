@@ -266,6 +266,7 @@ function App() {
   const [equipmentOpen, setEquipmentOpen] = useState(false);
   const [equipmentDraft, setEquipmentDraft] = useState(null);
   const [activeColorSlot, setActiveColorSlot] = useState('color');
+  const [activeSelectedAction, setActiveSelectedAction] = useState(null);
   const uiCopy = UI_COPY[matchState.appLanguage] || UI_COPY[DEFAULT_APP_LANGUAGE];
 
   useEffect(() => {
@@ -919,6 +920,19 @@ function App() {
     }));
   };
 
+  const handleTogglePlayerAction = (actionType) => {
+    updateMatchState((currentState) => {
+      const current = currentState.enabledPlayerActions || [];
+      const updated = current.includes(actionType)
+        ? current.filter((type) => type !== actionType)
+        : [...current, actionType];
+      return {
+        ...currentState,
+        enabledPlayerActions: updated,
+      };
+    });
+  };
+
   const handleFinalize = () => {
     setFinalizeConfirmOpen(true);
   };
@@ -1409,27 +1423,47 @@ function App() {
   };
 
   const handleAddPlayer = (side, player = null) => {
-    const newPlayer = player || {
-      id: crypto.randomUUID(),
+    const rawPlayer = player || {
       number: 99,
       name: 'Nueva jugadora',
-      role: 'MED',
-      injured: false,
-      x: 52,
-      y: 50,
+      role: 'DEL',
+    };
+
+    const newPlayer = {
+      id: rawPlayer.id || crypto.randomUUID(),
+      number: Number(rawPlayer.number) || 1,
+      name: typeof rawPlayer.name === 'string' && rawPlayer.name.trim() ? rawPlayer.name.trim() : 'Nueva jugadora',
+      role: rawPlayer.role || 'DEL',
+      injured: Boolean(rawPlayer.injured),
+      yellowCards: 0,
+      redCards: 0,
+      x: 0,
+      y: 0,
     };
 
     updateMatchState((currentState) => {
-      const totalPlayers = currentState.roster.local.length + currentState.roster.bench.length;
-      if (totalPlayers >= ROSTER_SIZE) {
-        return currentState;
+      const bench = currentState.roster.bench || [];
+
+      const isPlaceholder = (p) => {
+        const name = p.name?.trim() || '';
+        return !name || /^(Suplente|Portera|Defensa|Media|Medio|Delantera|Nueva jugadora)\s*\d*$/i.test(name);
+      };
+
+      const genericBenchIndex = bench.findIndex(isPlaceholder);
+
+      let newBench;
+      if (genericBenchIndex >= 0) {
+        newBench = [...bench];
+        newBench[genericBenchIndex] = newPlayer;
+      } else {
+        newBench = [...bench, newPlayer];
       }
 
       return {
         ...currentState,
         roster: {
           ...currentState.roster,
-          bench: [...currentState.roster.bench, { ...newPlayer, id: newPlayer.id || crypto.randomUUID() }],
+          bench: newBench,
         },
       };
     });
@@ -1603,6 +1637,105 @@ function App() {
     setInjuredPlayerModal(null);
   };
 
+  const handleSelectTeamAction = (team, actionType) => {
+    setActiveSelectedAction((prev) =>
+      prev && prev.team === team && prev.type === actionType ? null : { team, type: actionType },
+    );
+  };
+
+  const applyActionToPlayer = (player, team, actionType) => {
+    const rosterKey = team === 'visitor' ? 'visitor' : 'local';
+    const benchKey = team === 'visitor' ? 'visitorBench' : 'bench';
+
+    if (actionType === 'yellow') {
+      handleYellowCardClick(player, team);
+      return;
+    }
+
+    if (actionType === 'red') {
+      handleRedCardClick(player);
+      return;
+    }
+
+    if (actionType === 'substitution') {
+      setSubstitutionModal({
+        team,
+        fieldPlayers: matchState.roster[rosterKey] || [],
+        benchPlayers: matchState.roster[benchKey] || [],
+        outgoingPlayerId: player.id,
+        quickVisitor: team === 'visitor',
+      });
+      return;
+    }
+
+    if (actionType === 'injury') {
+      setSelectingInjured(false);
+      updateMatchState((currentState) => ({
+        ...currentState,
+        roster: {
+          ...currentState.roster,
+          [rosterKey]: (currentState.roster[rosterKey] || []).map((p) =>
+            p.id === player.id ? { ...p, injured: true } : p,
+          ),
+        },
+      }));
+      setInjuredPlayerModal({ player: { ...player, injured: true }, team });
+      return;
+    }
+
+    if (actionType === 'edit-number') {
+      const nextNumber = Number(window.prompt(translateUiText(`Nuevo dorsal para ${player.name}`, matchState.appLanguage), player.number));
+      if (Number.isFinite(nextNumber) && nextNumber > 0) {
+        updateMatchState((currentState) => ({
+          ...currentState,
+          roster: {
+            ...currentState.roster,
+            [rosterKey]: (currentState.roster[rosterKey] || []).map((item) =>
+              item.id === player.id ? { ...item, number: nextNumber } : item,
+            ),
+          },
+        }));
+      }
+      return;
+    }
+
+    updateMatchState((currentState) => {
+      const matchSide = getMatchSide(rosterKey, currentState.clubSide);
+      const selectedPlayer = (currentState.roster[rosterKey] || []).find((item) => item.id === player.id) || player;
+      const actionItem = PLAYER_ACTIONS.find((a) => a.type === actionType);
+      const actionLabelText = actionItem ? actionItem.label : actionType;
+
+      const playerLabel = rosterKey === 'visitor' ? `${selectedPlayer.number}` : selectedPlayer.name;
+      const eventText = rosterKey === 'visitor'
+        ? `${selectedPlayer.number} - ${actionLabelText}`
+        : `${playerLabel} (#${selectedPlayer.number}) - ${actionLabelText}`;
+
+      const nextState = {
+        ...currentState,
+        events: [
+          buildEvent(
+            actionType,
+            eventText,
+            matchSide,
+            [selectedPlayer],
+            currentState.elapsedSeconds,
+          ),
+          ...currentState.events,
+        ].slice(0, 25),
+      };
+
+      if (actionType === 'goal') {
+        nextState.scores = {
+          ...currentState.scores,
+          [matchSide]: currentState.scores[matchSide] + 1,
+        };
+        nextState.ball = { x: 50, y: 50 };
+      }
+
+      return nextState;
+    });
+  };
+
   const handlePlayerClick = (player, team = 'local') => {
     if (selectingInjured) {
       updateMatchState((currentState) => {
@@ -1622,9 +1755,10 @@ function App() {
       });
       setSelectingInjured(false);
       setInjuredPlayerModal({ player: { ...player, injured: true }, team });
-    } else {
-      setPlayerActionMenu({ player, team });
+      return;
     }
+
+    setPlayerActionMenu({ player, team, selectedAction: player.selectedAction || null });
   };
 
   const handlePlayerAction = (actionType) => {
@@ -1634,6 +1768,28 @@ function App() {
     const { player, team } = currentSelection;
     const rosterKey = team === 'visitor' ? 'visitor' : 'local';
     const benchKey = team === 'visitor' ? 'visitorBench' : 'bench';
+
+    if (currentSelection.selectedAction === actionType) {
+      updateMatchState((currentState) => ({
+        ...currentState,
+        roster: {
+          ...currentState.roster,
+          [rosterKey]: (currentState.roster[rosterKey] || []).map((item) => item.id === player.id ? { ...item, selectedAction: null } : item),
+          [benchKey]: (currentState.roster[benchKey] || []).map((item) => item.id === player.id ? { ...item, selectedAction: null } : item),
+        },
+      }));
+      setPlayerActionMenu(null);
+      return;
+    }
+
+    updateMatchState((currentState) => ({
+      ...currentState,
+      roster: {
+        ...currentState.roster,
+        [rosterKey]: (currentState.roster[rosterKey] || []).map((item) => item.id === player.id ? { ...item, selectedAction: actionType } : item),
+        [benchKey]: (currentState.roster[benchKey] || []).map((item) => item.id === player.id ? { ...item, selectedAction: actionType } : item),
+      },
+    }));
 
     if (actionType === 'yellow') {
       handleYellowCardClick(player, team);
@@ -1986,31 +2142,11 @@ function App() {
                   onStartSecondHalf={handleStartSecondHalf}
                   onAdvanceFiveMinutes={handleAdvanceFiveMinutes}
                   onReset={handleReset}
-                  onGoal={handleGoal}
-                  onAssist={handleAssist}
-                  onCard={handleCard}
+                  enabledPlayerActions={matchState.enabledPlayerActions}
+                  onTogglePlayerAction={handleTogglePlayerAction}
                   onFinalize={handleFinalize}
-                  onSubstitution={handleSubstitution}
-                  onFoul={handleFoul}
-                  onPenalty={handlePenalty}
-                  onOffside={handleOffside}
-                  onCorner={handleCorner}
-                  onEditNumber={handleEditNumber}
-                  onShotOnGoal={handleShotOnGoal}
-                  onShot={handleShot}
-                  onClearChanceCreated={handleClearChanceCreated}
-                  onClearChanceMissed={handleClearChanceMissed}
-                  onBallLoss={handleBallLoss}
-                  onCrosses={handleCrosses}
-                  onBallRecovery={handleBallRecovery}
-                  onClearance={handleClearance}
-                  onErrorGoal={handleErrorGoal}
-                  onErrorChance={handleErrorChance}
-                  onSaves={handleSaves}
-                  onOneOnOneWon={handleOneOnOneWon}
                   selectingInjured={selectingInjured}
                   onInitiateInjury={handleInitiateInjury}
-                  onInitiateYellowCard={handleInitiateYellowCard}
                   teamAppearance={matchState.teamAppearance}
                 />
                 <PitchField
@@ -2022,7 +2158,7 @@ function App() {
                   onPlayerMove={handlePlayerMove}
                   onApplyFormation={handleApplyFormation}
                   selectingInjured={selectingInjured}
-                  showPlayerNames={Boolean(activeCalendarMatchId)}
+                  showPlayerNames={true}
                   teamAppearance={matchState.teamAppearance}
                 />
               </div>
@@ -2032,6 +2168,7 @@ function App() {
                   events={matchState.events}
                   teamAppearance={matchState.teamAppearance}
                   enabledPlayerActions={matchState.enabledPlayerActions}
+                  onUpdatePlayerActions={handleTogglePlayerAction}
                 />
               </div>
             </section>
@@ -2241,6 +2378,7 @@ function App() {
           onSelectAction={handlePlayerAction}
           onCancel={() => setPlayerActionMenu(null)}
           enabledPlayerActions={matchState.enabledPlayerActions}
+          selectedAction={playerActionMenu.selectedAction || playerActionMenu.player?.selectedAction || null}
         />
       )}
 

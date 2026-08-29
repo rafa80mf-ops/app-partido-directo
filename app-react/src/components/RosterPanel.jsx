@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 const emptyPlayer = {
   number: 1,
   name: 'Nueva jugadora',
-  role: 'FWD',
+  role: 'DEL',
   injured: false,
 };
 
@@ -128,7 +128,7 @@ export default function RosterPanel({
     onAddPlayer('local', {
       ...draft,
       name: draft.name.trim(),
-      role: draft.role || 'FWD',
+      role: draft.role || 'DEL',
       number: Number(draft.number) || 1,
     });
 

@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import FootballBall from './FootballBall';
+import { ACTION_ICONS } from './PlayerActionMenuModal';
 
 export const FORMATION_POSITIONS = {
   '4-4-2': [
@@ -110,6 +111,11 @@ export default function PitchField({ teams, clubSide, roster, ball, onPlayerClic
     >
       <span className="player-number">{player.number}</span>
       {teamKey === 'local' && <span className="player-name">{player.name}</span>}
+      {player.selectedAction && (
+        <span className="selected-action-badge" aria-label={player.selectedAction} title={player.selectedAction}>
+          {ACTION_ICONS[player.selectedAction] ?? '•'}
+        </span>
+      )}
       {player.injured && <span className="injury-icon">✚</span>}
       {player.redCards > 0 && <span className="red-card">🟥</span>}
       {player.yellowCards > 0 && !player.redCards && (
@@ -191,6 +197,11 @@ export default function PitchField({ teams, clubSide, roster, ball, onPlayerClic
                 >
                   <span className="player-number">{player.number}</span>
                   <span className="bench-player-name">{player.name}</span>
+                  {player.selectedAction && (
+                    <span className="selected-action-badge" aria-label={player.selectedAction} title={player.selectedAction}>
+                      {ACTION_ICONS[player.selectedAction] ?? '•'}
+                    </span>
+                  )}
                   {player.injured && <span className="injury-icon">✚</span>}
                   {player.redCards > 0 && <span className="red-card">🟥</span>}
                   {player.yellowCards > 0 && !player.redCards && (

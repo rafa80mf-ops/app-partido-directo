@@ -1,0 +1,10 @@
+{
+  "name": "app-partido-directo",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "npm --prefix app-react run dev -- --host 0.0.0.0",
+    "build": "npm --prefix app-react run build",
+    "preview": "npm --prefix app-react run preview -- --host 0.0.0.0"
+  }
+}

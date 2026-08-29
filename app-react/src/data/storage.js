@@ -9,9 +9,27 @@ export const DEFAULT_LEAGUE_NAME = 'Liga';
 export const DEFAULT_LEAGUE_LOGO = '/fcf-logo.svg';
 export const DEFAULT_TEAM_APPEARANCE = { color: '#facc15', secondaryColor: '#111827', shape: 'ball' };
 export const DEFAULT_APP_LANGUAGE = 'es';
-const BLOCKED_PLAYER_NUMBERS = new Set([28, 29, 30]);
+const BLOCKED_PLAYER_NUMBERS = new Set();
 
 const SUPPORTED_APP_LANGUAGES = new Set(['es', 'en', 'fr', 'pt', 'de', 'it']);
+
+const DEFAULT_PLAYER_NAME_BY_NUMBER = {
+  2: 'IONA',
+  3: 'CLAUDIA',
+  4: 'JULIA',
+  5: 'MARTINA',
+  6: 'ELIA',
+  7: 'MIREIA',
+  8: 'ARLET',
+  9: 'ELI',
+  10: 'ANAIS',
+  11: 'BERTA',
+  14: 'ISA',
+  15: 'RUT',
+  17: 'SOFIA',
+  18: 'MARIA',
+  21: 'ERIKA',
+};
 
 function normalizeAppLanguage(language) {
   const safeLanguage = typeof language === 'string' ? language.trim().toLowerCase() : '';
@@ -173,6 +191,13 @@ export const DB_SCHEMA = {
 
 function sortPlayers(players) {
   return [...players].sort((firstPlayer, secondPlayer) => {
+    const firstIsNamed = isNamedPlayer(firstPlayer);
+    const secondIsNamed = isNamedPlayer(secondPlayer);
+
+    if (firstIsNamed !== secondIsNamed) {
+      return firstIsNamed ? -1 : 1;
+    }
+
     const firstNumber = Number(firstPlayer.number) || 0;
     const secondNumber = Number(secondPlayer.number) || 0;
     return firstNumber - secondNumber;
@@ -197,19 +222,33 @@ function isBlockedPlayer(player) {
   return BLOCKED_PLAYER_NUMBERS.has(Number(player?.number));
 }
 
+function isGenericRosterName(name) {
+  const safeName = typeof name === 'string' ? name.trim() : '';
+  if (!safeName) {
+    return true;
+  }
+
+  return /^(Suplente\s+\d+|Portera(?:\s+\d+)?|Defensa(?:\s+\d+)?|Media(?:\s+\d+)?|Medio(?:\s+\d+)?|Delantera(?:\s+\d+)?)$/i.test(safeName);
+}
+
 function defaultPlayerName(player, fallbackNumber = 1) {
   const trimmedName = typeof player?.name === 'string' ? player.name.trim() : '';
-  if (trimmedName) {
+  if (trimmedName && !isGenericRosterName(trimmedName)) {
     return trimmedName;
   }
 
-  const role = (player?.role || 'MED').toUpperCase();
   const number = Number(player?.number) || fallbackNumber;
+  const presetName = DEFAULT_PLAYER_NAME_BY_NUMBER[number];
+  if (presetName) {
+    return presetName;
+  }
+
+  const role = (player?.role || 'MED').toUpperCase();
   return `${role === 'POR' ? 'Portera' : role === 'DEF' ? 'Defensa' : role === 'MED' ? 'Media' : 'Delantera'} ${number}`;
 }
 
 function isNamedPlayer(player) {
-  return Boolean(player?.name?.trim()) && !/^(Suplente\s+\d+|Portera|Defensa|Media|Medio|Delantera)$/i.test(player.name.trim());
+  return !isGenericRosterName(player?.name);
 }
 
 function loadRosterBackup() {
@@ -276,12 +315,18 @@ function normalizeRoster(rawRoster, fallbackRoster) {
   }
 
   const backupPlayers = loadRosterBackup();
-  const namedPlayerCount = players.filter(isNamedPlayer).length;
-  if (backupPlayers.length > namedPlayerCount) {
+  const hasBackupNames = backupPlayers.length > 0;
+  if (hasBackupNames) {
     backupPlayers.forEach((backupPlayer) => {
       const playerIndex = players.findIndex((player) => player.id === backupPlayer.id || Number(player.number) === Number(backupPlayer.number));
       if (playerIndex >= 0) {
-        players[playerIndex] = { ...players[playerIndex], ...backupPlayer };
+        players[playerIndex] = {
+          ...players[playerIndex],
+          ...backupPlayer,
+          name: typeof backupPlayer.name === 'string' && backupPlayer.name.trim()
+            ? backupPlayer.name.trim()
+            : players[playerIndex].name,
+        };
       }
     });
   }
@@ -321,29 +366,24 @@ function normalizeRoster(rawRoster, fallbackRoster) {
 
 export function createEmptyMatchState() {
   const lineUp = [
-    { id: 1, number: 1, name: 'Portera', x: 10, y: 50, role: 'POR', yellowCards: 0, redCards: 0 },
-    { id: 2, number: 2, name: 'Defensa', x: 22, y: 20, role: 'DEF', yellowCards: 0, redCards: 0 },
-    { id: 3, number: 3, name: 'Defensa', x: 22, y: 35, role: 'DEF', yellowCards: 0, redCards: 0 },
-    { id: 4, number: 4, name: 'Defensa', x: 22, y: 65, role: 'DEF', yellowCards: 0, redCards: 0 },
-    { id: 5, number: 5, name: 'Defensa', x: 22, y: 80, role: 'DEF', yellowCards: 0, redCards: 0 },
-    { id: 6, number: 6, name: 'Medio', x: 45, y: 22, role: 'MED', yellowCards: 0, redCards: 0 },
-    { id: 7, number: 7, name: 'Medio', x: 45, y: 42, role: 'MED', yellowCards: 0, redCards: 0 },
-    { id: 8, number: 8, name: 'Medio', x: 45, y: 58, role: 'MED', yellowCards: 0, redCards: 0 },
-    { id: 9, number: 9, name: 'Delantera', x: 45, y: 78, role: 'DEL', yellowCards: 0, redCards: 0 },
-    { id: 10, number: 10, name: 'Delantera', x: 68, y: 35, role: 'DEL', yellowCards: 0, redCards: 0 },
-    { id: 11, number: 11, name: 'Delantera', x: 68, y: 65, role: 'DEL', yellowCards: 0, redCards: 0 },
+    { id: 1, number: 2, name: 'IONA', x: 10, y: 50, role: 'POR', yellowCards: 0, redCards: 0 },
+    { id: 2, number: 3, name: 'CLAUDIA', x: 22, y: 20, role: 'DEF', yellowCards: 0, redCards: 0 },
+    { id: 3, number: 4, name: 'JÚLIA', x: 22, y: 35, role: 'DEF', yellowCards: 0, redCards: 0 },
+    { id: 4, number: 5, name: 'MARTINA', x: 22, y: 65, role: 'DEF', yellowCards: 0, redCards: 0 },
+    { id: 5, number: 6, name: 'ELIA', x: 22, y: 80, role: 'DEF', yellowCards: 0, redCards: 0 },
+    { id: 6, number: 7, name: 'MIREIA', x: 45, y: 22, role: 'MED', yellowCards: 0, redCards: 0 },
+    { id: 7, number: 8, name: 'ARLET', x: 45, y: 42, role: 'MED', yellowCards: 0, redCards: 0 },
+    { id: 8, number: 9, name: 'ELI', x: 45, y: 58, role: 'MED', yellowCards: 0, redCards: 0 },
+    { id: 9, number: 10, name: 'ANAÏS', x: 45, y: 78, role: 'DEL', yellowCards: 0, redCards: 0 },
+    { id: 10, number: 11, name: 'BERTA', x: 68, y: 35, role: 'DEL', yellowCards: 0, redCards: 0 },
+    { id: 11, number: 14, name: 'ISA', x: 68, y: 65, role: 'DEL', yellowCards: 0, redCards: 0 },
   ];
 
   const bench = [
-    { id: 12, number: 12, name: 'Suplente 1', role: 'SUP', yellowCards: 0, redCards: 0 },
-    { id: 13, number: 13, name: 'Suplente 2', role: 'SUP', yellowCards: 0, redCards: 0 },
-    { id: 14, number: 14, name: 'Suplente 3', role: 'SUP', yellowCards: 0, redCards: 0 },
-    { id: 15, number: 15, name: 'Suplente 4', role: 'SUP', yellowCards: 0, redCards: 0 },
-    { id: 16, number: 16, name: 'Suplente 5', role: 'SUP', yellowCards: 0, redCards: 0 },
-    { id: 17, number: 17, name: 'Suplente 6', role: 'SUP', yellowCards: 0, redCards: 0 },
-    { id: 18, number: 18, name: 'Suplente 7', role: 'SUP', yellowCards: 0, redCards: 0 },
-    { id: 19, number: 19, name: 'Suplente 8', role: 'SUP', yellowCards: 0, redCards: 0 },
-    { id: 20, number: 20, name: 'Suplente 9', role: 'SUP', yellowCards: 0, redCards: 0 },
+    { id: 12, number: 15, name: 'RUT', role: 'SUP', yellowCards: 0, redCards: 0 },
+    { id: 13, number: 17, name: 'SOFIA', role: 'SUP', yellowCards: 0, redCards: 0 },
+    { id: 14, number: 18, name: 'MARIA', role: 'SUP', yellowCards: 0, redCards: 0 },
+    { id: 15, number: 21, name: 'ERIKA', role: 'SUP', yellowCards: 0, redCards: 0 },
   ];
 
   return {
