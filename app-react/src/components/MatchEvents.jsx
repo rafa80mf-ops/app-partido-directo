@@ -1,6 +1,5 @@
 import FootballBall from './FootballBall';
 import { useState } from 'react';
-import { PLAYER_ACTIONS } from '../data/actionCatalog';
 
 function getEventEmoji(type) {
   const mapping = {
@@ -29,9 +28,8 @@ function getEventMinuteLabel(event) {
   return null;
 }
 
-export default function MatchEvents({ events, teamAppearance, enabledPlayerActions = [], onUpdatePlayerActions = () => {} }) {
+export default function MatchEvents({ events, teamAppearance, enabledPlayerActions = [] }) {
   const [eventsOpen, setEventsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('report');
 
   const getActionLabel = (event) => {
     if (!event.players?.length) return event.label;
@@ -56,25 +54,7 @@ export default function MatchEvents({ events, teamAppearance, enabledPlayerActio
 
       {eventsOpen && (
         <>
-          <div className="events-tabs" role="tablist" aria-label="Acta y acciones">
-            <button type="button" className={activeTab === 'report' ? 'active' : ''} onClick={() => setActiveTab('report')} role="tab" aria-selected={activeTab === 'report'}>Acta</button>
-            <button type="button" className={activeTab === 'actions' ? 'active' : ''} onClick={() => setActiveTab('actions')} role="tab" aria-selected={activeTab === 'actions'}>Acciones</button>
-          </div>
-
-          {activeTab === 'actions' ? (
-            <div className="player-action-settings">
-              {PLAYER_ACTIONS.map((action) => (
-                <label key={action.type} className="player-action-setting">
-                  <input
-                    type="checkbox"
-                    checked={enabledPlayerActions.includes(action.type)}
-                    onChange={() => onUpdatePlayerActions(action.type)}
-                  />
-                  <span>{action.label}</span>
-                </label>
-              ))}
-            </div>
-          ) : events.length === 0 ? (
+          {events.length === 0 ? (
             <p className="empty-state">Todavía no hay eventos registrados.</p>
           ) : (
             <ul className="event-list">

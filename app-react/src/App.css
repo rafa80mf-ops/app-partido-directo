@@ -3276,6 +3276,129 @@
   flex: 0 0 auto;
 }
 
+.player-actions-config {
+  max-width: 560px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.player-actions-config .modal-heading-row {
+  flex: 0 0 auto;
+}
+
+.player-actions-config > .modal-label {
+  flex: 0 0 auto;
+  margin: 0 0 12px;
+}
+
+.actions-config-scroll-container {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 8px;
+  display: grid;
+  gap: 16px;
+}
+
+.actions-config-scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.actions-config-scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.actions-config-scroll-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.actions-config-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.player-actions-config .modal-actions {
+  flex: 0 0 auto;
+}
+
+.actions-config-section {
+  display: grid;
+  gap: 12px;
+  padding-bottom: 4px;
+}
+
+.actions-config-section h3 {
+  margin: 0;
+}
+
+.actions-config-section h3 {
+  margin: 0 0 8px;
+  color: #0f172a;
+  font-size: 0.95rem;
+}
+
+.actions-config-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.action-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #334155;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.action-checkbox input {
+  accent-color: #0f766e;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.action-checkbox input:checked {
+  accent-color: #0e7b32;
+}
+
+.action-checkbox:has(input:checked) {
+  border-color: #0e7b32;
+  background: #f0fdf4;
+  color: #0d3b1d;
+  box-shadow: 0 0 0 3px rgba(15, 123, 50, 0.1);
+}
+
+.action-checkbox:hover {
+  border-color: #cbd5e1;
+  background: #ffffff;
+}
+
+.action-checkbox:has(input:checked):hover {
+  border-color: #0e7b32;
+  background: #ecfdf5;
+  box-shadow: 0 0 0 3px rgba(15, 123, 50, 0.15);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
 .controls-panel {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

@@ -16,6 +16,7 @@ import HistoryEditModal from './components/HistoryEditModal';
 import HistoryDashboard from './components/HistoryDashboard';
 import PlayerActionMenuModal from './components/PlayerActionMenuModal';
 import StartMatchModal from './components/StartMatchModal';
+import PlayerActionsConfigModal from './components/PlayerActionsConfigModal';
 import TacticsBoardModal from './components/TacticsBoardModal';
 import TrainingDashboard from './components/TrainingDashboard';
 import {
@@ -251,6 +252,7 @@ function App() {
   const [substitutionModal, setSubstitutionModal] = useState(null);
   const [startMatchOpen, setStartMatchOpen] = useState(false);
   const [startMatchMode, setStartMatchMode] = useState('default');
+  const [playerActionsConfigOpen, setPlayerActionsConfigOpen] = useState(false);
   const [tacticsBoardOpen, setTacticsBoardOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('live');
   const [teamSeasonDraft, setTeamSeasonDraft] = useState('');
@@ -550,20 +552,6 @@ function App() {
     }));
   };
 
-  const handleUpdatePlayerActions = (actionType) => {
-    updateMatchState((currentState) => {
-      const enabledActions = normalizeEnabledPlayerActions(currentState.enabledPlayerActions);
-      const nextActions = enabledActions.includes(actionType)
-        ? enabledActions.filter((enabledAction) => enabledAction !== actionType)
-        : [...enabledActions, actionType];
-
-      return {
-        ...currentState,
-        enabledPlayerActions: nextActions,
-      };
-    });
-  };
-
   const renumberTrainingSessions = (sessions) => [...sessions]
     .sort((firstTraining, secondTraining) => {
       const byDate = String(firstTraining.date || '').localeCompare(String(secondTraining.date || ''));
@@ -778,7 +766,7 @@ function App() {
     setStartMatchMode('default');
     setActiveCalendarMatchId(null);
     setEditingHistoryId(null);
-    setLineupSelectionOpen(true);
+    setPlayerActionsConfigOpen(true);
     setFirstHalfAddedMinutes(0);
     setFirstHalfAddedConfigured(false);
     setSecondHalfAddedMinutes(0);
@@ -912,11 +900,23 @@ function App() {
     setCalendarOpen(false);
     setActiveSection('live');
     setStartMatchOpen(false);
-    setLineupSelectionOpen(true);
+    setPlayerActionsConfigOpen(true);
     setSecondHalfAddedMinutes(0);
     setSecondHalfAddedConfigured(false);
     setHalfTimeNoticeShown(false);
     setFullTimeNoticeShown(false);
+  };
+
+  const handleConfirmPlayerActionsConfig = () => {
+    setPlayerActionsConfigOpen(false);
+    setLineupSelectionOpen(true);
+  };
+
+  const handleUpdateEnabledPlayerActions = (actions) => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      enabledPlayerActions: actions,
+    }));
   };
 
   const handleFinalize = () => {
@@ -1224,6 +1224,176 @@ function App() {
       outgoingPlayerId,
       quickVisitor: team === 'visitor' && Boolean(outgoingPlayerId),
     });
+  };
+
+  const handleFoul = (team) => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      events: [
+        buildEvent('foul', `${currentState.teams[team]} comete falta`, team, [], currentState.elapsedSeconds),
+        ...currentState.events,
+      ].slice(0, 25),
+    }));
+  };
+
+  const handlePenalty = (team) => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      events: [
+        buildEvent('penalty', `${currentState.teams[team]} - Penalti`, team, [], currentState.elapsedSeconds),
+        ...currentState.events,
+      ].slice(0, 25),
+    }));
+  };
+
+  const handleOffside = (team) => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      events: [
+        buildEvent('offside', `${currentState.teams[team]} - Fuera de juego`, team, [], currentState.elapsedSeconds),
+        ...currentState.events,
+      ].slice(0, 25),
+    }));
+  };
+
+  const handleCorner = (team) => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      events: [
+        buildEvent('corner', `${currentState.teams[team]} - Saque de esquina`, team, [], currentState.elapsedSeconds),
+        ...currentState.events,
+      ].slice(0, 25),
+    }));
+  };
+
+  const handleEditNumber = (team) => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      events: [
+        buildEvent('edit-number', `${currentState.teams[team]} - Cambio de dorsal`, team, [], currentState.elapsedSeconds),
+        ...currentState.events,
+      ].slice(0, 25),
+    }));
+  };
+
+  const handleShotOnGoal = (team) => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      events: [
+        buildEvent('shot-on-goal', `${currentState.teams[team]} - Tiro a puerta`, team, [], currentState.elapsedSeconds),
+        ...currentState.events,
+      ].slice(0, 25),
+    }));
+  };
+
+  const handleShot = (team) => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      events: [
+        buildEvent('shot', `${currentState.teams[team]} - Tiros`, team, [], currentState.elapsedSeconds),
+        ...currentState.events,
+      ].slice(0, 25),
+    }));
+  };
+
+  const handleClearChanceCreated = (team) => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      events: [
+        buildEvent('clear-chance-created', `${currentState.teams[team]} - Ocasión clara creada`, team, [], currentState.elapsedSeconds),
+        ...currentState.events,
+      ].slice(0, 25),
+    }));
+  };
+
+  const handleClearChanceMissed = (team) => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      events: [
+        buildEvent('clear-chance-missed', `${currentState.teams[team]} - Ocasión clara fallada`, team, [], currentState.elapsedSeconds),
+        ...currentState.events,
+      ].slice(0, 25),
+    }));
+  };
+
+  const handleBallLoss = (team) => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      events: [
+        buildEvent('ball-loss', `${currentState.teams[team]} - Pérdida de balón`, team, [], currentState.elapsedSeconds),
+        ...currentState.events,
+      ].slice(0, 25),
+    }));
+  };
+
+  const handleCrosses = (team) => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      events: [
+        buildEvent('crosses', `${currentState.teams[team]} - Centros`, team, [], currentState.elapsedSeconds),
+        ...currentState.events,
+      ].slice(0, 25),
+    }));
+  };
+
+  const handleBallRecovery = (team) => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      events: [
+        buildEvent('ball-recovery', `${currentState.teams[team]} - Balón recuperado`, team, [], currentState.elapsedSeconds),
+        ...currentState.events,
+      ].slice(0, 25),
+    }));
+  };
+
+  const handleClearance = (team) => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      events: [
+        buildEvent('clearance', `${currentState.teams[team]} - Despejes`, team, [], currentState.elapsedSeconds),
+        ...currentState.events,
+      ].slice(0, 25),
+    }));
+  };
+
+  const handleErrorGoal = (team) => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      events: [
+        buildEvent('error-goal', `${currentState.teams[team]} - Error provoca gol`, team, [], currentState.elapsedSeconds),
+        ...currentState.events,
+      ].slice(0, 25),
+    }));
+  };
+
+  const handleErrorChance = (team) => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      events: [
+        buildEvent('error-chance', `${currentState.teams[team]} - Error provoca ocasión de gol`, team, [], currentState.elapsedSeconds),
+        ...currentState.events,
+      ].slice(0, 25),
+    }));
+  };
+
+  const handleSaves = (team) => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      events: [
+        buildEvent('saves', `${currentState.teams[team]} - Paradas`, team, [], currentState.elapsedSeconds),
+        ...currentState.events,
+      ].slice(0, 25),
+    }));
+  };
+
+  const handleOneOnOneWon = (team) => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      events: [
+        buildEvent('one-on-one-won', `${currentState.teams[team]} - Uno contra uno ganado`, team, [], currentState.elapsedSeconds),
+        ...currentState.events,
+      ].slice(0, 25),
+    }));
   };
 
   const handleManualScoreChange = (team, value) => {
@@ -1821,6 +1991,23 @@ function App() {
                   onCard={handleCard}
                   onFinalize={handleFinalize}
                   onSubstitution={handleSubstitution}
+                  onFoul={handleFoul}
+                  onPenalty={handlePenalty}
+                  onOffside={handleOffside}
+                  onCorner={handleCorner}
+                  onEditNumber={handleEditNumber}
+                  onShotOnGoal={handleShotOnGoal}
+                  onShot={handleShot}
+                  onClearChanceCreated={handleClearChanceCreated}
+                  onClearChanceMissed={handleClearChanceMissed}
+                  onBallLoss={handleBallLoss}
+                  onCrosses={handleCrosses}
+                  onBallRecovery={handleBallRecovery}
+                  onClearance={handleClearance}
+                  onErrorGoal={handleErrorGoal}
+                  onErrorChance={handleErrorChance}
+                  onSaves={handleSaves}
+                  onOneOnOneWon={handleOneOnOneWon}
                   selectingInjured={selectingInjured}
                   onInitiateInjury={handleInitiateInjury}
                   onInitiateYellowCard={handleInitiateYellowCard}
@@ -1845,7 +2032,6 @@ function App() {
                   events={matchState.events}
                   teamAppearance={matchState.teamAppearance}
                   enabledPlayerActions={matchState.enabledPlayerActions}
-                  onUpdatePlayerActions={handleUpdatePlayerActions}
                 />
               </div>
             </section>
@@ -2096,6 +2282,18 @@ function App() {
           onClose={() => {
             setStartMatchOpen(false);
             setStartMatchMode('default');
+          }}
+        />
+      )}
+
+      {playerActionsConfigOpen && (
+        <PlayerActionsConfigModal
+          enabledActions={matchState.enabledPlayerActions}
+          onUpdateActions={handleUpdateEnabledPlayerActions}
+          onConfirm={handleConfirmPlayerActionsConfig}
+          onCancel={() => {
+            setPlayerActionsConfigOpen(false);
+            setStartMatchOpen(true);
           }}
         />
       )}
