@@ -6,6 +6,10 @@ function formatMinutes(seconds) {
   return Math.floor((Number(seconds) || 0) / 60);
 }
 
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+}
+
 function buildPlayerStats(matches) {
   const stats = new Map();
 
@@ -257,8 +261,56 @@ export default function HistoryDashboard({ matches, onEditMatch, onDeleteMatch, 
     setShareMessage('Acta guardada en tu ordenador.');
   };
 
+  const buildPlayerStatsText = () => [
+    'ESTADÍSTICAS DEL EQUIPO',
+    `${matches.length} partidos finalizados`,
+    '',
+    ...playerStats.map((player) => `${player.number}. ${player.name} | Minutos: ${player.minutes} | Goles: ${player.goals} | Asistencias: ${player.assists} | Amarillas: ${player.yellowCards} | Rojas: ${player.redCards}`),
+  ].join('\n');
+
+  const handleSharePlayerStats = async () => {
+    try {
+      const text = buildPlayerStatsText();
+      if (navigator.share) {
+        await navigator.share({ title: 'Estadísticas del equipo', text });
+      } else {
+        await navigator.clipboard.writeText(text);
+      }
+      setShareMessage('Estadísticas enviadas o copiadas.');
+    } catch {
+      setShareMessage('No se pudieron enviar las estadísticas.');
+    }
+  };
+
+  const handleDownloadPlayerStats = () => {
+    const blob = new Blob([buildPlayerStatsText()], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'estadisticas-equipo.txt';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setShareMessage('Estadísticas guardadas en tu ordenador.');
+  };
+
+  const handlePrintPlayerStats = () => {
+    const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+    if (!printWindow) {
+      setShareMessage('No se pudo abrir la ventana de impresión.');
+      return;
+    }
+
+    const rows = playerStats.map((player) => `<tr><td>${escapeHtml(`${player.number}. ${player.name}`)}</td><td>${player.minutes}</td><td>${player.goals}</td><td>${player.assists}</td><td>${player.yellowCards}</td><td>${player.redCards}</td></tr>`).join('');
+    printWindow.document.write(`<!doctype html><html><head><title>Estadísticas del equipo</title><style>body{font-family:Arial,sans-serif;color:#172033;padding:24px}h1{font-size:22px;margin:0 0 4px}p{color:#475569;margin:0 0 20px}table{width:100%;border-collapse:collapse}th,td{padding:10px;border:1px solid #cbd5e1;text-align:left}th{background:#10231a;color:#fff}</style></head><body><h1>Estadísticas del equipo</h1><p>${matches.length} partidos finalizados</p><table><thead><tr><th>Jugadora</th><th>Min.</th><th>Goles</th><th>Asist.</th><th>Amar.</th><th>Rojas</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  };
+
   return (
-    <section className="history-dashboard" aria-label="Historial">
+    <section className="history-dashboard" aria-label="Historial" style={{ '--club-color': teamAppearance?.color || '#facc15', '--club-contrast': teamAppearance?.secondaryColor || '#111827' }}>
       <header className="section-heading">
         <div><h1>Historial</h1><p>Consulta las actas y el rendimiento de tu equipo.</p></div>
       </header>
@@ -288,11 +340,21 @@ export default function HistoryDashboard({ matches, onEditMatch, onDeleteMatch, 
               </ul>
             </>}
             <h3 className="report-title">Acta</h3>
-            {selectedEvents.length === 0 ? <p className="empty-state">No hay acciones registradas.</p> : <ol className="report-event-list">{sortEventsByMatchTime(selectedEvents).map((event) => <li key={event.id} className={`${event.team === 'visitor' ? 'visitor-event' : 'local-event'} ${event.type === 'yellow' ? 'yellow-card-event' : ''}`}><span className="report-event-minute">{getEventMinuteLabel(event) || "--'"}</span><span className={`report-event-icon ${event.type === 'yellow' ? 'yellow-card-icon' : ''} ${event.team === 'visitor' ? 'visitor-action-icon' : 'local-action-icon'} ${event.team === 'local' && selectedAppearance?.shape === 'shirt' ? 'appearance-shirt' : ''}`} style={event.team === 'local' ? { '--team-color': selectedAppearance?.color || '#facc15' } : undefined} aria-hidden="true">{event.type === 'goal' ? <FootballBall className="event-ball" /> : getEventIcon(event.type)}</span><span>{formatReportEventLabel(event)}</span></li>)}</ol>}
+            {selectedEvents.length === 0 ? <p className="empty-state">No hay acciones registradas.</p> : <ol className="report-event-list">{sortEventsByMatchTime(selectedEvents).map((event) => <li key={event.id} className={`${event.team === 'visitor' ? 'visitor-event' : 'local-event'} ${event.type === 'yellow' ? 'yellow-card-event' : ''}`}><span className="report-event-minute">{getEventMinuteLabel(event) || "--'"}</span><span className={`report-event-icon ${event.type === 'yellow' ? 'yellow-card-icon' : ''} ${event.type === 'injury' ? 'injury-event-icon' : ''} ${event.team === 'visitor' ? 'visitor-action-icon' : 'local-action-icon'} ${event.team === 'local' && selectedAppearance?.shape === 'shirt' ? 'appearance-shirt' : ''}`} style={event.team === 'local' ? { '--team-color': selectedAppearance?.color || '#facc15' } : undefined} aria-hidden="true">{event.type === 'goal' ? <FootballBall className="event-ball" /> : getEventIcon(event.type)}</span><span>{formatReportEventLabel(event)}</span></li>)}</ol>}
           </article> : <div className="empty-match-report" aria-label="Ninguna acta seleccionada"><img src={clubCrest?.trim() || '/club-crest.svg'} alt="Escudo del club" onError={(event) => { event.currentTarget.onerror = null; event.currentTarget.src = '/club-crest.svg'; }} /></div>}
         </div>
       ) : (
-        <div className="stats-table-wrap"><table className="stats-table"><thead><tr><th>Jugadora</th><th>Min.</th><th>Goles</th><th>Asist.</th><th>Amar.</th><th>Rojas</th></tr></thead><tbody>{playerStats.map((player) => <tr key={player.key}><td><strong>{player.number}</strong> {player.name}</td><td>{player.minutes}</td><td>{player.goals}</td><td>{player.assists}</td><td>{player.yellowCards}</td><td>{player.redCards}</td></tr>)}</tbody></table></div>
+        <section className="player-stats-panel">
+          <div className="match-report-heading">
+            <div><h2>Estadísticas del equipo</h2><p>{matches.length} partidos finalizados</p></div>
+            <div className="match-report-actions">
+              <button type="button" className="icon-report-button" onClick={handlePrintPlayerStats} title="Imprimir estadísticas" aria-label="Imprimir estadísticas">🖨</button>
+              <button type="button" className="icon-report-button share-report-button" onClick={handleSharePlayerStats} title="Enviar estadísticas" aria-label="Enviar estadísticas">↗</button>
+              <button type="button" className="icon-report-button download-report-button" onClick={handleDownloadPlayerStats} title="Guardar estadísticas" aria-label="Guardar estadísticas">⬇</button>
+            </div>
+          </div>
+          <div className="stats-table-wrap"><table className="stats-table"><thead><tr><th>Jugadora</th><th>Min.</th><th>Goles</th><th>Asist.</th><th>Amar.</th><th>Rojas</th></tr></thead><tbody>{playerStats.map((player) => <tr key={player.key}><td><strong>{player.number}</strong> {player.name}</td><td>{player.minutes}</td><td>{player.goals}</td><td>{player.assists}</td><td>{player.yellowCards}</td><td>{player.redCards}</td></tr>)}</tbody></table></div>
+        </section>
       )}
       {shareMessage && <p className="selection-count" role="status">{shareMessage}</p>}
     </section>       

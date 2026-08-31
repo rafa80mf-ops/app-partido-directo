@@ -16,7 +16,6 @@ import HistoryEditModal from './components/HistoryEditModal';
 import HistoryDashboard from './components/HistoryDashboard';
 import PlayerActionMenuModal from './components/PlayerActionMenuModal';
 import StartMatchModal from './components/StartMatchModal';
-import PlayerActionsConfigModal from './components/PlayerActionsConfigModal';
 import TacticsBoardModal from './components/TacticsBoardModal';
 import TrainingDashboard from './components/TrainingDashboard';
 import {
@@ -32,7 +31,7 @@ import {
 } from './data/storage';
 import { saveMatchSnapshot } from './data/localDb';
 import { translateUiText, translateUiTree } from './i18n/uiTranslator';
-import { PLAYER_ACTIONS, normalizeEnabledPlayerActions } from './data/actionCatalog';
+import { PLAYER_ACTIONS } from './data/actionCatalog';
 
 function buildEvent(type, label, team = 'neutral', players = [], elapsedSeconds = null) {
   const safeElapsedSeconds = Number.isFinite(elapsedSeconds)
@@ -252,7 +251,6 @@ function App() {
   const [substitutionModal, setSubstitutionModal] = useState(null);
   const [startMatchOpen, setStartMatchOpen] = useState(false);
   const [startMatchMode, setStartMatchMode] = useState('default');
-  const [playerActionsConfigOpen, setPlayerActionsConfigOpen] = useState(false);
   const [tacticsBoardOpen, setTacticsBoardOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('live');
   const [teamSeasonDraft, setTeamSeasonDraft] = useState('');
@@ -267,6 +265,7 @@ function App() {
   const [equipmentDraft, setEquipmentDraft] = useState(null);
   const [activeColorSlot, setActiveColorSlot] = useState('color');
   const [activeSelectedAction, setActiveSelectedAction] = useState(null);
+  const [eventsOpen, setEventsOpen] = useState(false);
   const uiCopy = UI_COPY[matchState.appLanguage] || UI_COPY[DEFAULT_APP_LANGUAGE];
 
   useEffect(() => {
@@ -339,6 +338,7 @@ function App() {
     }
 
     if (matchState.elapsedSeconds >= 45 * 60 && !firstHalfAddedConfigured && !halfTimeNoticeShown) {
+      playHalfTimeAlertSound();
       const addedMinutesInput = window.prompt(
         translateUiText('Minuto 45. Indica minutos de descuento para la primera parte (0-15).', matchState.appLanguage),
         `${firstHalfAddedMinutes}`,
@@ -748,7 +748,10 @@ function App() {
 
     updateMatchState((currentState) => ({
       ...currentState,
-      teams: { local, visitor },
+      teams: {
+        local: local || currentState.teams?.local || CLUB_NAME,
+        visitor: visitor || currentState.teams?.visitor || 'VISITANTE',
+      },
       clubSide,
       scores: { local: 0, visitor: 0 },
       elapsedSeconds: 0,
@@ -767,7 +770,7 @@ function App() {
     setStartMatchMode('default');
     setActiveCalendarMatchId(null);
     setEditingHistoryId(null);
-    setPlayerActionsConfigOpen(true);
+    setLineupSelectionOpen(true);
     setFirstHalfAddedMinutes(0);
     setFirstHalfAddedConfigured(false);
     setSecondHalfAddedMinutes(0);
@@ -779,7 +782,6 @@ function App() {
   const handleReset = () => {
     const resetState = createEmptyMatchState();
     const availablePlayers = getAvailablePlayers();
-    resetState.teams = { local: '', visitor: '' };
     resetState.clubSide = 'local';
     resetState.clubCrest = matchState.clubCrest;
     resetState.leagueName = matchState.leagueName;
@@ -901,23 +903,11 @@ function App() {
     setCalendarOpen(false);
     setActiveSection('live');
     setStartMatchOpen(false);
-    setPlayerActionsConfigOpen(true);
+    setLineupSelectionOpen(true);
     setSecondHalfAddedMinutes(0);
     setSecondHalfAddedConfigured(false);
     setHalfTimeNoticeShown(false);
     setFullTimeNoticeShown(false);
-  };
-
-  const handleConfirmPlayerActionsConfig = () => {
-    setPlayerActionsConfigOpen(false);
-    setLineupSelectionOpen(true);
-  };
-
-  const handleUpdateEnabledPlayerActions = (actions) => {
-    updateMatchState((currentState) => ({
-      ...currentState,
-      enabledPlayerActions: actions,
-    }));
   };
 
   const handleTogglePlayerAction = (actionType) => {
@@ -966,6 +956,7 @@ function App() {
           injured: false,
           yellowCards: 0,
           redCards: 0,
+          selectedAction: null,
           x: 0,
           y: 0,
         }));
@@ -1509,6 +1500,17 @@ function App() {
         },
       };
     });
+  };
+
+  const handleDeletePlayer = (side, playerId) => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      roster: {
+        ...currentState.roster,
+        local: (currentState.roster.local || []).filter((player) => player.id !== playerId),
+        bench: (currentState.roster.bench || []).filter((player) => player.id !== playerId),
+      },
+    }));
   };
 
   const handleMovePlayer = (side, playerId, target) => {
@@ -2148,28 +2150,24 @@ function App() {
                   selectingInjured={selectingInjured}
                   onInitiateInjury={handleInitiateInjury}
                   teamAppearance={matchState.teamAppearance}
+                  eventsOpen={eventsOpen}
+                  onToggleEvents={() => setEventsOpen((isOpen) => !isOpen)}
                 />
-                <PitchField
-                  teams={matchState.teams}
-                  clubSide={matchState.clubSide}
-                  roster={matchState.roster}
-                  ball={matchState.ball}
-                  onPlayerClick={handlePlayerClick}
-                  onPlayerMove={handlePlayerMove}
-                  onApplyFormation={handleApplyFormation}
-                  selectingInjured={selectingInjured}
-                  showPlayerNames={true}
-                  teamAppearance={matchState.teamAppearance}
-                />
-              </div>
-
-              <div className="content-grid">
-                <MatchEvents
-                  events={matchState.events}
-                  teamAppearance={matchState.teamAppearance}
-                  enabledPlayerActions={matchState.enabledPlayerActions}
-                  onUpdatePlayerActions={handleTogglePlayerAction}
-                />
+                <div className="pitch-and-events">
+                  <PitchField
+                    teams={matchState.teams}
+                    clubSide={matchState.clubSide}
+                    roster={matchState.roster}
+                    ball={matchState.ball}
+                    onPlayerClick={handlePlayerClick}
+                    onPlayerMove={handlePlayerMove}
+                    onApplyFormation={handleApplyFormation}
+                    selectingInjured={selectingInjured}
+                    showPlayerNames={true}
+                    teamAppearance={matchState.teamAppearance}
+                  />
+                  <MatchEvents events={matchState.events} teamAppearance={matchState.teamAppearance} isOpen={eventsOpen} />
+                </div>
               </div>
             </section>
           )}
@@ -2233,6 +2231,7 @@ function App() {
                 technicalStaff={matchState.technicalStaff}
                 onAddPlayer={handleAddPlayer}
                 onUpdatePlayer={handleUpdatePlayer}
+                onDeletePlayer={handleDeletePlayer}
                 onMovePlayer={handleMovePlayer}
                 onUpdateTechnicalStaff={handleUpdateTechnicalStaff}
                 onSelectLineup={() => setLineupSelectionOpen(true)}
@@ -2284,6 +2283,7 @@ function App() {
             <TrainingDashboard
               roster={tacticsRoster}
               trainingSessions={matchState.trainingSessions}
+              teamAppearance={matchState.teamAppearance}
               onSaveTraining={handleSaveTraining}
               onDeleteTraining={handleDeleteTraining}
               appLanguage={matchState.appLanguage}
@@ -2420,18 +2420,6 @@ function App() {
           onClose={() => {
             setStartMatchOpen(false);
             setStartMatchMode('default');
-          }}
-        />
-      )}
-
-      {playerActionsConfigOpen && (
-        <PlayerActionsConfigModal
-          enabledActions={matchState.enabledPlayerActions}
-          onUpdateActions={handleUpdateEnabledPlayerActions}
-          onConfirm={handleConfirmPlayerActionsConfig}
-          onCancel={() => {
-            setPlayerActionsConfigOpen(false);
-            setStartMatchOpen(true);
           }}
         />
       )}

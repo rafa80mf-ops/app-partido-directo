@@ -24,11 +24,18 @@ const DEFAULT_PLAYER_NAME_BY_NUMBER = {
   9: 'ELI',
   10: 'ANAIS',
   11: 'BERTA',
+  13: 'MARTA',
   14: 'ISA',
   15: 'RUT',
   17: 'SOFIA',
   18: 'MARIA',
   21: 'ERIKA',
+  25: 'MARTINA',
+};
+
+const DEFAULT_PLAYER_ROLE_BY_NUMBER = {
+  2: 'POR',
+  13: 'POR',
 };
 
 function normalizeAppLanguage(language) {
@@ -49,6 +56,16 @@ function normalizeCalendarMatches(matches) {
     type: match.type || 'Liga',
     time: match.time || '',
   })).sort((firstMatch, secondMatch) => `${firstMatch.date}T${firstMatch.time}`.localeCompare(`${secondMatch.date}T${secondMatch.time}`));
+}
+
+function normalizeTeamName(rawValue, fallbackValue) {
+  const trimmedValue = typeof rawValue === 'string' ? rawValue.trim() : '';
+
+  if (trimmedValue === 'LOCAL') {
+    return CLUB_NAME;
+  }
+
+  return trimmedValue || fallbackValue;
 }
 
 const TECHNICAL_STAFF_ROLES = new Set([
@@ -247,6 +264,23 @@ function defaultPlayerName(player, fallbackNumber = 1) {
   return `${role === 'POR' ? 'Portera' : role === 'DEF' ? 'Defensa' : role === 'MED' ? 'Media' : 'Delantera'} ${number}`;
 }
 
+function defaultPlayerRole(player, fallbackNumber = 1) {
+  const explicitRole = typeof player?.role === 'string' ? player.role.trim().toUpperCase() : '';
+  const validRoles = new Set(['POR', 'DEF', 'MED', 'DEL', 'SUP']);
+
+  if (explicitRole && validRoles.has(explicitRole)) {
+    return explicitRole;
+  }
+
+  const number = Number(player?.number) || fallbackNumber;
+  const presetRole = DEFAULT_PLAYER_ROLE_BY_NUMBER[number];
+  if (presetRole) {
+    return presetRole;
+  }
+
+  return explicitRole || 'MED';
+}
+
 function isNamedPlayer(player) {
   return !isGenericRosterName(player?.name);
 }
@@ -262,7 +296,7 @@ function loadRosterBackup() {
 
 function saveRosterBackup(roster) {
   const players = [...(roster?.local || []), ...(roster?.bench || [])]
-    .filter((player) => isNamedPlayer(player))
+    .filter((player) => isNamedPlayer(player) || DEFAULT_PLAYER_NAME_BY_NUMBER[Number(player.number)])
     .map((player) => ({
       id: player.id,
       number: player.number,
@@ -318,16 +352,40 @@ function normalizeRoster(rawRoster, fallbackRoster) {
   const hasBackupNames = backupPlayers.length > 0;
   if (hasBackupNames) {
     backupPlayers.forEach((backupPlayer) => {
-      const playerIndex = players.findIndex((player) => player.id === backupPlayer.id || Number(player.number) === Number(backupPlayer.number));
-      if (playerIndex >= 0) {
-        players[playerIndex] = {
-          ...players[playerIndex],
-          ...backupPlayer,
-          name: typeof backupPlayer.name === 'string' && backupPlayer.name.trim()
-            ? backupPlayer.name.trim()
-            : players[playerIndex].name,
-        };
+      const exactMatchIndex = players.findIndex((player) => player.id === backupPlayer.id);
+      const fallbackMatchIndex = exactMatchIndex === -1
+        ? players.findIndex((player) => {
+            const sameNumber = Number(player.number) === Number(backupPlayer.number);
+            const currentName = typeof player.name === 'string' ? player.name.trim() : '';
+            return sameNumber && (!currentName || isGenericRosterName(currentName));
+          })
+        : -1;
+      const playerIndex = exactMatchIndex >= 0 ? exactMatchIndex : fallbackMatchIndex;
+
+      if (playerIndex < 0) {
+        return;
       }
+
+      const currentPlayer = players[playerIndex];
+      const currentName = typeof currentPlayer.name === 'string' ? currentPlayer.name.trim() : '';
+      const currentRole = typeof currentPlayer.role === 'string' ? currentPlayer.role.trim().toUpperCase() : '';
+      const validRoles = new Set(['POR', 'DEF', 'MED', 'DEL', 'SUP']);
+      const backupName = typeof backupPlayer.name === 'string' && backupPlayer.name.trim()
+        ? backupPlayer.name.trim()
+        : currentPlayer.name;
+      const backupRole = typeof backupPlayer.role === 'string' && backupPlayer.role.trim()
+        ? backupPlayer.role.trim().toUpperCase()
+        : currentPlayer.role;
+
+      const shouldKeepCurrentName = currentName && !isGenericRosterName(currentName);
+      const shouldKeepCurrentRole = currentRole && validRoles.has(currentRole);
+
+      players[playerIndex] = {
+        ...currentPlayer,
+        ...backupPlayer,
+        name: shouldKeepCurrentName ? currentName : backupName,
+        role: shouldKeepCurrentRole ? currentRole : backupRole,
+      };
     });
   }
 
@@ -336,15 +394,18 @@ function normalizeRoster(rawRoster, fallbackRoster) {
     local: sortPlayers(players.filter((player) => localIds.has(player.id))).map((player) => ({
       ...player,
       name: defaultPlayerName(player, Number(player.number) || 1),
+      role: defaultPlayerRole(player, Number(player.number) || 1),
     })),
     bench: sortPlayers(players.filter((player) => !localIds.has(player.id))).map((player) => ({
       ...player,
       name: defaultPlayerName(player, Number(player.number) || 1),
+      role: defaultPlayerRole(player, Number(player.number) || 1),
     })),
     visitor: sortPlayers(rawVisitor.map((player) => ({
       ...player,
       id: player.id || `visitor-${player.number || 1}`,
       name: defaultPlayerName(player, Number(player.number) || 1),
+      role: defaultPlayerRole(player, Number(player.number) || 1),
       injured: Boolean(player.injured),
       yellowCards: Number(player.yellowCards) || 0,
       redCards: Number(player.redCards) || 0,
@@ -355,6 +416,7 @@ function normalizeRoster(rawRoster, fallbackRoster) {
       ...player,
       id: player.id || `visitor-bench-${player.number || 1}`,
       name: defaultPlayerName(player, Number(player.number) || 1),
+      role: defaultPlayerRole(player, Number(player.number) || 1),
       injured: Boolean(player.injured),
       yellowCards: Number(player.yellowCards) || 0,
       redCards: Number(player.redCards) || 0,
@@ -380,10 +442,12 @@ export function createEmptyMatchState() {
   ];
 
   const bench = [
-    { id: 12, number: 15, name: 'RUT', role: 'SUP', yellowCards: 0, redCards: 0 },
-    { id: 13, number: 17, name: 'SOFIA', role: 'SUP', yellowCards: 0, redCards: 0 },
-    { id: 14, number: 18, name: 'MARIA', role: 'SUP', yellowCards: 0, redCards: 0 },
-    { id: 15, number: 21, name: 'ERIKA', role: 'SUP', yellowCards: 0, redCards: 0 },
+    { id: 12, number: 13, name: 'MARTA', role: 'POR', yellowCards: 0, redCards: 0 },
+    { id: 13, number: 15, name: 'RUT', role: 'SUP', yellowCards: 0, redCards: 0 },
+    { id: 14, number: 17, name: 'SOFIA', role: 'SUP', yellowCards: 0, redCards: 0 },
+    { id: 15, number: 18, name: 'MARIA', role: 'SUP', yellowCards: 0, redCards: 0 },
+    { id: 16, number: 21, name: 'ERIKA', role: 'SUP', yellowCards: 0, redCards: 0 },
+    { id: 17, number: 25, name: 'MARTINA', role: 'SUP', yellowCards: 0, redCards: 0 },
   ];
 
   return {
@@ -443,8 +507,8 @@ export function normalizeMatchState(rawState) {
 
   return {
     teams: {
-      local: rawState.teams?.local === 'LOCAL' ? CLUB_NAME : (rawState.teams?.local ?? base.teams.local),
-      visitor: rawState.teams?.visitor ?? base.teams.visitor,
+      local: normalizeTeamName(rawState.teams?.local, base.teams.local),
+      visitor: normalizeTeamName(rawState.teams?.visitor, base.teams.visitor),
     },
     clubCrest: typeof rawState.clubCrest === 'string' && rawState.clubCrest.trim()
       ? rawState.clubCrest.trim()

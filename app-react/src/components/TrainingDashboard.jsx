@@ -26,6 +26,10 @@ function getPlayerName(player) {
   return player?.name?.trim() || `Jugadora ${player?.number || ''}`.trim();
 }
 
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+}
+
 function formatAbsenceReason(reason) {
   return {
     lesion: 'Lesión',
@@ -59,7 +63,7 @@ const ABSENCE_REASON_OPTIONS = [
   { value: 'otros', label: 'Otros' },
 ];
 
-export default function TrainingDashboard({ roster, trainingSessions = [], onSaveTraining, onDeleteTraining, appLanguage = 'es' }) {
+export default function TrainingDashboard({ roster, trainingSessions = [], teamAppearance, onSaveTraining, onDeleteTraining, appLanguage = 'es' }) {
   const dateInputRef = useRef(null);
   const players = useMemo(() => [...(roster?.local || []), ...(roster?.bench || [])]
     .filter((player, index, allPlayers) => allPlayers.findIndex((candidate) => candidate.id === player.id) === index)
@@ -73,6 +77,7 @@ export default function TrainingDashboard({ roster, trainingSessions = [], onSav
   const [showStats, setShowStats] = useState(false);
   const [showTrainingHistory, setShowTrainingHistory] = useState(false);
   const [historyPlayerId, setHistoryPlayerId] = useState(null);
+  const [statsMessage, setStatsMessage] = useState('');
 
   const selectedSession = sessions.find((training) => training.id === selectedSessionId) || null;
   const selectedHistoryPlayer = players.find((player) => player.id === historyPlayerId) || null;
@@ -247,8 +252,10 @@ export default function TrainingDashboard({ roster, trainingSessions = [], onSav
     const maxNumberForDate = sessions
       .filter((training) => training.date === selectedDate)
       .reduce((highestNumber, training) => Math.max(highestNumber, Number(training.number) || 0), 0);
+    const nextDate = today();
 
     setSelectedSessionId(null);
+    setSelectedDate(nextDate);
     setTrainingNumber(Math.max(maxNumberForDate, safeCurrentNumber) + 1);
     setAttendance({});
     setAbsenceReasons({});
@@ -267,8 +274,115 @@ export default function TrainingDashboard({ roster, trainingSessions = [], onSav
     });
   };
 
+  const buildTrainingStatsText = () => [
+    'Estadística de asistencia',
+    `${sessions.length} sesiones guardadas`,
+    '',
+    ...stats.map((player) => (
+      `${player.number}. ${getPlayerName(player)} | Asiste: ${player.present} | Ausente: ${player.absent} | Asistencia: ${player.percentage}%${player.absent > 0 ? ` | Motivos: ${player.absenceReasonSummary || 'Otros'}` : ''}`
+    )),
+  ].join('\n');
+
+  const handleShareStats = async () => {
+    const text = buildTrainingStatsText();
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Estadística de asistencia', text });
+      } else {
+        await navigator.clipboard.writeText(text);
+      }
+      setStatsMessage('Estadística enviada o copiada.');
+    } catch {
+      setStatsMessage('No se pudo enviar la estadística.');
+    }
+  };
+
+  const handleDownloadStats = () => {
+    const blob = new Blob([buildTrainingStatsText()], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'estadistica-entrenos.txt';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setStatsMessage('Estadística guardada en tu ordenador.');
+  };
+
+  const handlePrintStats = () => {
+    const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+    if (!printWindow) {
+      setStatsMessage('No se pudo abrir la ventana de impresión.');
+      return;
+    }
+
+    const rows = stats.map((player) => `<tr><td>${escapeHtml(`${player.number}. ${getPlayerName(player)}`)}</td><td>${player.present}</td><td>${player.absent}</td><td>${escapeHtml(player.absent > 0 ? player.absenceReasonSummary || 'Otros' : '—')}</td><td>${player.percentage}%</td></tr>`).join('');
+    printWindow.document.write(`<!doctype html><html><head><title>Estadística de asistencia</title><style>body{font-family:Arial,sans-serif;color:#172033;padding:24px}h1{font-size:22px;margin:0 0 4px}p{color:#475569;margin:0 0 20px}table{width:100%;border-collapse:collapse}th,td{padding:10px;border:1px solid #cbd5e1;text-align:left}th{background:#10231a;color:#fff}</style></head><body><h1>Estadística de asistencia</h1><p>${sessions.length} sesiones guardadas</p><table><thead><tr><th>Jugadora</th><th>Asiste</th><th>Ausente</th><th>Motivo ausencias</th><th>Asistencia</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  };
+
+  const buildPlayerHistoryText = () => {
+    if (!selectedHistoryPlayer) {
+      return '';
+    }
+
+    const playerStats = stats.find((player) => player.id === selectedHistoryPlayer.id);
+    return [
+      `Historial de entrenos: ${selectedHistoryPlayer.number}. ${getPlayerName(selectedHistoryPlayer)}`,
+      `Asistencia: ${playerStats?.percentage || 0}% | Asiste: ${playerStats?.present || 0} | Ausente: ${playerStats?.absent || 0}`,
+      '',
+      ...selectedPlayerTimeline.map((entry) => `${entry.date} | Entreno ${entry.number} | ${entry.status === 'present' ? 'Asiste' : `Ausente (${entry.reason})`}`),
+    ].join('\n');
+  };
+
+  const handleSharePlayerHistory = async () => {
+    try {
+      const text = buildPlayerHistoryText();
+      if (navigator.share) {
+        await navigator.share({ title: `Historial de ${getPlayerName(selectedHistoryPlayer)}`, text });
+      } else {
+        await navigator.clipboard.writeText(text);
+      }
+      setStatsMessage('Historial enviado o copiado.');
+    } catch {
+      setStatsMessage('No se pudo enviar el historial.');
+    }
+  };
+
+  const handleDownloadPlayerHistory = () => {
+    const blob = new Blob([buildPlayerHistoryText()], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `historial-entrenos-${getPlayerName(selectedHistoryPlayer).replace(/\s+/g, '-').toLowerCase()}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setStatsMessage('Historial guardado en tu ordenador.');
+  };
+
+  const handlePrintPlayerHistory = () => {
+    const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+    if (!printWindow || !selectedHistoryPlayer) {
+      setStatsMessage('No se pudo abrir la ventana de impresión.');
+      return;
+    }
+
+    const rows = selectedPlayerTimeline.map((entry) => `<tr><td>${escapeHtml(entry.date)}</td><td>${entry.number}</td><td>${entry.status === 'present' ? 'Asiste' : 'Ausente'}</td><td>${escapeHtml(entry.status === 'absent' ? entry.reason : '—')}</td></tr>`).join('');
+    const playerStats = stats.find((player) => player.id === selectedHistoryPlayer.id);
+    printWindow.document.write(`<!doctype html><html><head><title>Historial de entrenos</title><style>body{font-family:Arial,sans-serif;color:#172033;padding:24px}h1{font-size:22px;margin:0 0 4px}p{color:#475569;margin:0 0 20px}table{width:100%;border-collapse:collapse}th,td{padding:10px;border:1px solid #cbd5e1;text-align:left}th{background:#10231a;color:#fff}</style></head><body><h1>Historial de ${escapeHtml(`${selectedHistoryPlayer.number}. ${getPlayerName(selectedHistoryPlayer)}`)}</h1><p>Asistencia: ${playerStats?.percentage || 0}%</p><table><thead><tr><th>Día</th><th>Entreno</th><th>Estado</th><th>Motivo</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  };
+
   return (
-    <section className="training-dashboard" aria-label="Entrenos">
+    <section className="training-dashboard" aria-label="Entrenos" style={{ '--club-color': teamAppearance?.color || '#facc15', '--club-contrast': teamAppearance?.secondaryColor || '#111827' }}>
       <header className="section-heading">
         <div>
           <h1>Entrenos</h1>
@@ -390,7 +504,14 @@ export default function TrainingDashboard({ roster, trainingSessions = [], onSav
             <h2>Estadística de asistencia</h2>
             <p>Resumen de todos los entrenos guardados.</p>
           </div>
-          <strong>{sessions.length} sesiones</strong>
+          <div className="training-stats-actions">
+            <strong>{sessions.length} sesiones</strong>
+            {sessions.length > 0 && <div>
+              <button type="button" onClick={handlePrintStats} title="Imprimir estadística" aria-label="Imprimir estadística">🖨</button>
+              <button type="button" onClick={handleShareStats} title="Enviar estadística" aria-label="Enviar estadística">↗</button>
+              <button type="button" onClick={handleDownloadStats} title="Guardar estadística" aria-label="Guardar estadística">⬇</button>
+            </div>}
+          </div>
         </div>
         {sessions.length === 0 ? <p className="empty-state">Guarda el primer entreno para ver las estadísticas.</p> : (
           <div className="training-stats-table-wrap">
@@ -403,7 +524,14 @@ export default function TrainingDashboard({ roster, trainingSessions = [], onSav
               <section className="player-timeline-panel" aria-label={`Historial de ${getPlayerName(selectedHistoryPlayer)}`}>
                 <div className="player-timeline-header">
                   <h3>Historial: {selectedHistoryPlayer.number}. {getPlayerName(selectedHistoryPlayer)}</h3>
-                  <button type="button" onClick={() => setHistoryPlayerId(null)}>Cerrar</button>
+                  <div className="training-stats-actions">
+                    <div>
+                      <button type="button" onClick={handlePrintPlayerHistory} title="Imprimir historial" aria-label="Imprimir historial">🖨</button>
+                      <button type="button" onClick={handleSharePlayerHistory} title="Enviar historial" aria-label="Enviar historial">↗</button>
+                      <button type="button" onClick={handleDownloadPlayerHistory} title="Guardar historial" aria-label="Guardar historial">⬇</button>
+                    </div>
+                    <button type="button" className="player-history-close" onClick={() => setHistoryPlayerId(null)} title="Cerrar historial" aria-label="Cerrar historial">×</button>
+                  </div>
                 </div>
                 {selectedPlayerTimeline.length === 0 ? (
                   <p className="empty-state">No hay registros para esta jugadora.</p>
@@ -424,6 +552,7 @@ export default function TrainingDashboard({ roster, trainingSessions = [], onSav
             )}
           </div>
         )}
+        {statsMessage && <p className="selection-count" role="status">{statsMessage}</p>}
       </section>}
     </section>
   );

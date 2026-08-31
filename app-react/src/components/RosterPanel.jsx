@@ -71,6 +71,7 @@ export default function RosterPanel({
   technicalStaff = [],
   onAddPlayer,
   onUpdatePlayer,
+  onDeletePlayer,
   onMovePlayer,
   onUpdateTechnicalStaff = () => {},
   onSelectLineup,
@@ -82,6 +83,7 @@ export default function RosterPanel({
   const [addFormOpen, setAddFormOpen] = useState(false);
   const [technicalStaffDraft, setTechnicalStaffDraft] = useState(emptyTechnicalStaffMember);
   const [editingTechnicalStaffId, setEditingTechnicalStaffId] = useState(null);
+  const [addTechnicalStaffFormOpen, setAddTechnicalStaffFormOpen] = useState(false);
 
   const technicalStaffList = useMemo(
     () => (Array.isArray(technicalStaff) ? technicalStaff : [])
@@ -158,6 +160,12 @@ export default function RosterPanel({
     });
     setEditingId(null);
     setDraft(emptyPlayer);
+  };
+
+  const confirmDeletePlayer = (player) => {
+    if (window.confirm(`¿Eliminar a ${player.name} de la plantilla?`)) {
+      onDeletePlayer?.('local', player.id);
+    }
   };
 
   const handleSaveTechnicalStaff = (event) => {
@@ -279,6 +287,7 @@ export default function RosterPanel({
                       </div>
                       <div className="roster-actions">
                         <button type="button" onClick={() => startEdit(player)}>Editar</button>
+                        <button type="button" onClick={() => confirmDeletePlayer(player)}>Eliminar</button>
                         {group.moveTarget && (
                           <button type="button" onClick={() => onMovePlayer('local', player.id, group.moveTarget)}>
                             {group.moveTarget === 'bench' ? '↓ Banquillo' : '↑ Titular'}
@@ -295,38 +304,46 @@ export default function RosterPanel({
       </div>
 
       <section className="technical-staff-panel" aria-label="Cuerpo técnico">
-        <h3>Cuerpo técnico</h3>
-        <form className="technical-staff-form" onSubmit={handleSaveTechnicalStaff}>
-          <select
-            value={technicalStaffDraft.role}
-            onChange={(event) => setTechnicalStaffDraft((current) => ({ ...current, role: event.target.value }))}
-            aria-label="Rol de cuerpo técnico"
-          >
-            {technicalStaffRoleOptions.map((roleOption) => (
-              <option key={roleOption.value} value={roleOption.value}>{roleOption.label}</option>
-            ))}
-          </select>
-          <input
-            type="text"
-            value={technicalStaffDraft.name}
-            onChange={(event) => setTechnicalStaffDraft((current) => ({ ...current, name: event.target.value }))}
-            placeholder="Nombre"
-            aria-label="Nombre de cuerpo técnico"
-          />
-          <button type="submit" className="secondary-button">{editingTechnicalStaffId ? 'Guardar' : 'Añadir'}</button>
-          {editingTechnicalStaffId && (
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() => {
-                setEditingTechnicalStaffId(null);
-                setTechnicalStaffDraft(emptyTechnicalStaffMember);
-              }}
+        <div className="technical-staff-header">
+          <h3>Cuerpo técnico</h3>
+          <button type="button" className={`secondary-button roster-toggle-button ${addTechnicalStaffFormOpen ? 'open' : ''}`} onClick={() => setAddTechnicalStaffFormOpen((isOpen) => !isOpen)} aria-expanded={addTechnicalStaffFormOpen}>
+            {addTechnicalStaffFormOpen ? '− Ocultar cuerpo técnico' : '+ Añadir cuerpo técnico'}
+          </button>
+        </div>
+
+        {addTechnicalStaffFormOpen && (
+          <form className="technical-staff-form" onSubmit={handleSaveTechnicalStaff}>
+            <select
+              value={technicalStaffDraft.role}
+              onChange={(event) => setTechnicalStaffDraft((current) => ({ ...current, role: event.target.value }))}
+              aria-label="Rol de cuerpo técnico"
             >
-              Cancelar
-            </button>
-          )}
-        </form>
+              {technicalStaffRoleOptions.map((roleOption) => (
+                <option key={roleOption.value} value={roleOption.value}>{roleOption.label}</option>
+              ))}
+            </select>
+            <input
+              type="text"
+              value={technicalStaffDraft.name}
+              onChange={(event) => setTechnicalStaffDraft((current) => ({ ...current, name: event.target.value }))}
+              placeholder="Nombre"
+              aria-label="Nombre de cuerpo técnico"
+            />
+            <button type="submit" className="secondary-button">{editingTechnicalStaffId ? 'Guardar' : 'Añadir'}</button>
+            {editingTechnicalStaffId && (
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => {
+                  setEditingTechnicalStaffId(null);
+                  setTechnicalStaffDraft(emptyTechnicalStaffMember);
+                }}
+              >
+                Cancelar
+              </button>
+            )}
+          </form>
+        )}
 
         {technicalStaffList.length > 0 && (
           <ul className="technical-staff-list">

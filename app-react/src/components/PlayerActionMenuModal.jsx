@@ -2,7 +2,7 @@ import FootballBall from './FootballBall';
 import { PLAYER_ACTIONS } from '../data/actionCatalog';
 
 export const ACTION_ICONS = {
-  goal: <FootballBall />,
+  goal: '⚽',
   assist: '🅰️',
   yellow: '🟨',
   red: '🟥',
@@ -28,7 +28,8 @@ export const ACTION_ICONS = {
 };
 
 export default function PlayerActionMenuModal({ player, team, onSelectAction, onCancel, enabledPlayerActions = [], selectedAction = null }) {
-  const actions = PLAYER_ACTIONS.filter((action) => enabledPlayerActions.includes(action.type));
+  const enabledActionSet = new Set(enabledPlayerActions);
+  const actions = PLAYER_ACTIONS.filter((action) => enabledActionSet.has(action.type));
 
   return (
     <div className="modal-overlay" onClick={onCancel}>

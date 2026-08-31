@@ -1,35 +1,127 @@
-export const PLAYER_ACTIONS = [
-  { type: 'goal', label: 'Gol' },
-  { type: 'assist', label: 'Asistencia' },
-  { type: 'yellow', label: 'Tarjeta amarilla' },
-  { type: 'red', label: 'Tarjeta roja' },
-  { type: 'injury', label: 'Lesión' },
-  { type: 'substitution', label: 'Cambio' },
-  { type: 'edit-number', label: 'Dorsal' },
-  { type: 'foul', label: 'Falta' },
-  { type: 'penalty', label: 'Penalti' },
-  { type: 'offside', label: 'Fuera de juego' },
-  { type: 'corner', label: 'Saque de esquina' },
-  { type: 'shot-on-goal', label: 'Tiro a puerta' },
-  { type: 'shot', label: 'Tiros' },
-  { type: 'clear-chance-created', label: 'Ocasión clara creada' },
-  { type: 'clear-chance-missed', label: 'Ocasión clara fallada' },
-  { type: 'ball-loss', label: 'Pérdida de balón' },
-  { type: 'crosses', label: 'Centros' },
-  { type: 'ball-recovery', label: 'Balón recuperado' },
-  { type: 'clearance', label: 'Despejes' },
-  { type: 'error-goal', label: 'Error provoca gol' },
-  { type: 'error-chance', label: 'Error provoca ocasión de gol' },
-  { type: 'saves', label: 'Paradas' },
-  { type: 'one-on-one-won', label: 'Uno contra uno ganado' },
+export const ACTION_PRIORITY = [
+  'goal',
+  'assist',
+  'shot-on-goal',
+  'shot',
+  'clear-chance-created',
+  'clear-chance-missed',
+  'key-pass',
+  'dribble',
+  'crosses',
+  'completed-passes',
+  'ball-loss',
+  'offside',
+  'interception',
+  'tackle',
+  'defensive-duel-won',
+  'defensive-duel-lost',
+  'ball-recovery',
+  'clearance',
+  'block',
+  'recovery-opposition',
+  'error-goal',
+  'error-chance',
+  'saves',
+  'shots-faced',
+  'goals-conceded',
+  'save-rate',
+  'clean-sheet',
+  'one-on-one-won',
+  'yellow',
+  'red',
+  'foul',
+  'fouls-received',
+  'penalty',
+  'penalty-awarded',
+  'injury',
+  'substitution',
+  'edit-number',
 ];
 
-export const DEFAULT_ENABLED_PLAYER_ACTIONS = PLAYER_ACTIONS.map((action) => action.type);
+const ACTION_LABELS = {
+  goal: 'Gol',
+  assist: 'Asistencia',
+  'shot-on-goal': 'Tiro a puerta',
+  shot: 'Tiros',
+  'clear-chance-created': 'Ocasión clara creada',
+  'clear-chance-missed': 'Ocasión clara fallada',
+  'key-pass': 'Pases clave',
+  dribble: 'Regates',
+  crosses: 'Centros',
+  'completed-passes': 'Pases completados',
+  'ball-loss': 'Pérdidas de balón',
+  offside: 'Fueras de juego',
+  interception: 'Intercepciones',
+  tackle: 'Entradas',
+  'defensive-duel-won': 'Duelos defensivos ganados',
+  'defensive-duel-lost': 'Duelos defensivos perdidos',
+  'ball-recovery': 'Balones recuperados',
+  clearance: 'Despejes',
+  block: 'Bloqueos',
+  'recovery-opposition': 'Recuperaciones en campo rival',
+  'error-goal': 'Error provoca gol',
+  'error-chance': 'Error provoca ocasión',
+  saves: 'Paradas',
+  'shots-faced': 'Tiros recibidos',
+  'goals-conceded': 'Goles encajados',
+  'save-rate': '% de paradas',
+  'clean-sheet': 'Portería a cero',
+  'one-on-one-won': '1 contra 1 ganados',
+  yellow: 'Tarjeta amarilla',
+  red: 'Tarjeta roja',
+  foul: 'Faltas cometidas',
+  'fouls-received': 'Faltas recibidas',
+  penalty: 'Penaltis cometidos',
+  'penalty-awarded': 'Penaltis recibidos',
+  injury: 'Lesión',
+  substitution: 'Cambio',
+  'edit-number': 'Dorsal',
+};
+
+export const ACTION_GROUPS = [
+  {
+    id: 'offensive',
+    title: 'Estadísticas ofensivas',
+    types: ['goal', 'assist', 'shot-on-goal', 'shot', 'clear-chance-created', 'clear-chance-missed', 'key-pass', 'dribble', 'crosses', 'completed-passes', 'ball-loss', 'offside'],
+  },
+  {
+    id: 'defensive',
+    title: 'Estadísticas defensivas',
+    types: ['interception', 'tackle', 'defensive-duel-won', 'defensive-duel-lost', 'ball-recovery', 'clearance', 'block', 'recovery-opposition', 'error-goal', 'error-chance'],
+  },
+  {
+    id: 'goalkeeper',
+    title: 'Porteras/os',
+    types: ['saves', 'shots-faced', 'goals-conceded', 'save-rate', 'clean-sheet', 'one-on-one-won', 'clearance', 'completed-passes', 'ball-loss'],
+  },
+  {
+    id: 'discipline',
+    title: 'Disciplina',
+    types: ['yellow', 'red', 'foul', 'fouls-received', 'penalty', 'penalty-awarded'],
+  },
+  {
+    id: 'special',
+    title: 'Extras',
+    types: ['injury', 'substitution', 'edit-number'],
+  },
+];
+
+export const PLAYER_ACTIONS = ACTION_PRIORITY.map((type) => ({
+  type,
+  label: ACTION_LABELS[type] || type,
+}));
+
+export const DEFAULT_ENABLED_PLAYER_ACTIONS = [...ACTION_PRIORITY];
 
 export function normalizeEnabledPlayerActions(rawValue) {
-  const enabledActions = Array.isArray(rawValue)
-    ? rawValue.filter((actionType) => PLAYER_ACTIONS.some((action) => action.type === actionType))
-    : DEFAULT_ENABLED_PLAYER_ACTIONS;
+  const uniqueSelected = new Set();
 
-  return [...new Set(enabledActions)];
+  (Array.isArray(rawValue) ? rawValue : DEFAULT_ENABLED_PLAYER_ACTIONS)
+    .forEach((actionType) => {
+      if (ACTION_PRIORITY.includes(actionType)) {
+        uniqueSelected.add(actionType);
+      }
+    });
+
+  return ACTION_PRIORITY.filter((actionType) => uniqueSelected.has(actionType));
 }

@@ -196,7 +196,7 @@ export default function PitchField({ teams, clubSide, roster, ball, onPlayerClic
                   tabIndex={selectingInjured ? 0 : -1}
                 >
                   <span className="player-number">{player.number}</span>
-                  <span className="bench-player-name">{player.name}</span>
+                  {team === 'local' && <span className="bench-player-name">{player.name}</span>}
                   {player.selectedAction && (
                     <span className="selected-action-badge" aria-label={player.selectedAction} title={player.selectedAction}>
                       {ACTION_ICONS[player.selectedAction] ?? '•'}
