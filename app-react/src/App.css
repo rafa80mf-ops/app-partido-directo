@@ -2108,6 +2108,14 @@
   white-space: nowrap;
 }
 
+.player-token.goalkeeper,
+.player-token.goalkeeper.appearance-ball,
+.player-token.goalkeeper.appearance-shirt,
+.player-token.visitor-player.goalkeeper {
+  background: #000000 !important;
+  color: #f8fafc !important;
+}
+
 .injury-icon {
   position: absolute;
   bottom: -2px;
@@ -2470,7 +2478,7 @@
 
 .bench-player.goalkeeper,
 .bench-player.visitor-bench.goalkeeper {
-  background: linear-gradient(180deg, #374151, #030712);
+  background: #000000;
   border-color: #f8fafc;
   color: #f8fafc;
 }
@@ -2978,6 +2986,13 @@
 .tactics-player.goalkeeper.appearance-shirt {
   background: var(--team-color, #facc15);
   color: #111827;
+}
+
+.tactics-player.goalkeeper,
+.tactics-player.goalkeeper.appearance-ball,
+.tactics-player.goalkeeper.appearance-shirt {
+  background: #000000 !important;
+  color: #f8fafc !important;
 }
 
 .tactics-player.selected {
