@@ -10,9 +10,10 @@ export default function PlayerActionsConfigModal({ enabledActions, onUpdateActio
   };
 
   // Separar acciones por grupo
-  const basicActions = PLAYER_ACTIONS.filter((a) => ['goal', 'assist', 'yellow', 'red', 'injury', 'substitution'].includes(a.type));
+  const basicActions = PLAYER_ACTIONS.filter((a) => ['assist', 'yellow', 'red', 'injury', 'substitution'].includes(a.type));
   const offensiveActions = PLAYER_ACTIONS.filter((a) => ['shot-on-goal', 'shot', 'clear-chance-created', 'clear-chance-missed'].includes(a.type));
-  const defensiveActions = PLAYER_ACTIONS.filter((a) => ['foul', 'penalty', 'offside', 'corner', 'edit-number', 'ball-loss', 'crosses', 'ball-recovery', 'clearance', 'error-goal', 'error-chance', 'saves', 'one-on-one-won'].includes(a.type));
+  const defensiveActions = PLAYER_ACTIONS.filter((a) => ['penalty', 'offside', 'edit-number', 'ball-loss', 'crosses', 'ball-recovery', 'clearance', 'error-goal', 'error-chance', 'saves', 'one-on-one-won'].includes(a.type));
+  const gameActions = PLAYER_ACTIONS.filter((a) => ['goal', 'foul', 'corner', 'counterattack', 'wide-cross', 'cutback', 'combination-play', 'ball-behind-defense', 'individual-action', 'long-shot', 'second-ball', 'direct-play', 'own-goal'].includes(a.type));
 
   return (
     <div className="modal-overlay" onClick={onCancel}>
@@ -61,6 +62,22 @@ export default function PlayerActionsConfigModal({ enabledActions, onUpdateActio
             <h3>Acciones defensivas y de balón</h3>
             <div className="actions-config-list">
               {defensiveActions.map((action) => (
+                <label key={action.type} className="action-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={enabledActions.includes(action.type)}
+                    onChange={() => handleToggleAction(action.type)}
+                  />
+                  <span>{action.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="actions-config-section">
+            <h3>Acciones de gol</h3>
+            <div className="actions-config-list">
+              {gameActions.map((action) => (
                 <label key={action.type} className="action-checkbox">
                   <input
                     type="checkbox"

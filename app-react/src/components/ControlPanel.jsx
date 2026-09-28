@@ -68,6 +68,17 @@ export default function ControlPanel({
       'second-yellow': '🟨',
       red: '🟥',
       foul: '⚠️',
+      corner: '🚩',
+      counterattack: '⚡',
+      'wide-cross': '↗️',
+      cutback: '↙️',
+      'combination-play': '🔗',
+      'ball-behind-defense': '➡️',
+      'individual-action': '🏃',
+      'long-shot': '🎯',
+      'second-ball': '🔄',
+      'direct-play': '⬆️',
+      'own-goal': '🥅',
       'fouls-received': '🤝',
       penalty: '🔫',
       'penalty-awarded': '📣',
@@ -108,7 +119,7 @@ export default function ControlPanel({
       yellow: isVisitor ? 'Amarilla visitante' : 'Amarilla',
       'second-yellow': isVisitor ? 'Segunda amarilla visitante' : 'Segunda amarilla',
       red: isVisitor ? 'Roja visitante' : 'Roja',
-      foul: isVisitor ? 'Faltas cometidas visitante' : 'Faltas cometidas',
+      foul: isVisitor ? 'Falta visitante' : 'Falta',
       'fouls-received': isVisitor ? 'Faltas recibidas visitante' : 'Faltas recibidas',
       penalty: isVisitor ? 'Penaltis cometidos visitante' : 'Penaltis cometidos',
       'penalty-awarded': isVisitor ? 'Penaltis recibidos visitante' : 'Penaltis recibidos',
@@ -121,7 +132,7 @@ export default function ControlPanel({
       <div key={groupTitle} className="team-actions-group">
         <h4>{groupTitle}</h4>
         <div className="team-actions-panel-group">
-          {groupActions.map((action) => renderActionButton(team, action.type, labels[action.type], icons[action.type] ?? '•'))}
+          {groupActions.map((action) => renderActionButton(team, action.type, labels[action.type] ?? action.label, icons[action.type] ?? '•'))}
         </div>
       </div>
     );

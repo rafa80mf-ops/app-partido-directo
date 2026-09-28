@@ -15,6 +15,7 @@ import HistoryModal from './components/HistoryModal';
 import HistoryEditModal from './components/HistoryEditModal';
 import HistoryDashboard from './components/HistoryDashboard';
 import PlayerActionMenuModal from './components/PlayerActionMenuModal';
+import GoalActionModal from './components/GoalActionModal';
 import StartMatchModal from './components/StartMatchModal';
 import TacticsBoardModal from './components/TacticsBoardModal';
 import TrainingDashboard from './components/TrainingDashboard';
@@ -248,6 +249,7 @@ function App() {
   const [editingHistoryId, setEditingHistoryId] = useState(null);
   const [historyEditMatch, setHistoryEditMatch] = useState(null);
   const [playerActionMenu, setPlayerActionMenu] = useState(null);
+  const [pendingGoalAction, setPendingGoalAction] = useState(null);
   const [substitutionModal, setSubstitutionModal] = useState(null);
   const [startMatchOpen, setStartMatchOpen] = useState(false);
   const [startMatchMode, setStartMatchMode] = useState('default');
@@ -1771,6 +1773,12 @@ function App() {
     const rosterKey = team === 'visitor' ? 'visitor' : 'local';
     const benchKey = team === 'visitor' ? 'visitorBench' : 'bench';
 
+    if (actionType === 'goal') {
+      setPendingGoalAction({ player, team });
+      setPlayerActionMenu(null);
+      return;
+    }
+
     if (currentSelection.selectedAction === actionType) {
       updateMatchState((currentState) => ({
         ...currentState,
@@ -1833,20 +1841,24 @@ function App() {
       const selectedPlayer = (currentState.roster[rosterKey] || []).find((item) => item.id === player.id);
       if (!selectedPlayer) return currentState;
 
-      if (actionType === 'goal' || actionType === 'assist') {
-        const actionLabel = actionType === 'goal' ? 'marca gol' : 'da asistencia';
+      if (actionType === 'goal' || actionType === 'own-goal' || actionType === 'assist') {
+        const isOwnGoal = actionType === 'own-goal';
+        const scoringSide = isOwnGoal ? (matchSide === 'local' ? 'visitor' : 'local') : matchSide;
+        const actionLabel = isOwnGoal
+          ? 'marca en propia puerta'
+          : actionType === 'goal' ? 'marca gol' : 'da asistencia';
         const nextState = {
           ...currentState,
           events: [
-            buildEvent(actionType, `${formatPlayerEventLabel(selectedPlayer, rosterKey)} ${actionLabel}`, matchSide, [selectedPlayer], currentState.elapsedSeconds),
+            buildEvent(isOwnGoal ? 'goal' : actionType, `${formatPlayerEventLabel(selectedPlayer, rosterKey)} ${actionLabel}`, scoringSide, [selectedPlayer], currentState.elapsedSeconds),
             ...currentState.events,
           ].slice(0, 25),
         };
 
-        if (actionType === 'goal') {
+        if (actionType === 'goal' || isOwnGoal) {
           nextState.scores = {
             ...currentState.scores,
-            [matchSide]: currentState.scores[matchSide] + 1,
+            [scoringSide]: currentState.scores[scoringSide] + 1,
           };
           nextState.ball = { x: 50, y: 50 };
         }
@@ -1892,7 +1904,7 @@ function App() {
       }
 
       const genericAction = PLAYER_ACTIONS.find((action) => action.type === actionType);
-      if (genericAction && ['foul', 'penalty', 'offside', 'corner'].includes(actionType)) {
+      if (genericAction && actionType !== 'injury') {
         return {
           ...currentState,
           events: [
@@ -1921,6 +1933,43 @@ function App() {
       setInjuredPlayerModal({ player: { ...player, injured: true }, team });
     }
     setPlayerActionMenu(null);
+  };
+
+  const handleSelectGoalAction = (goalActionType) => {
+    if (!pendingGoalAction) return;
+
+    const { player, team } = pendingGoalAction;
+    const rosterKey = team === 'visitor' ? 'visitor' : 'local';
+    const goalAction = PLAYER_ACTIONS.find((action) => action.type === goalActionType);
+
+    if (!goalAction) return;
+
+    updateMatchState((currentState) => {
+      const selectedPlayer = (currentState.roster[rosterKey] || []).find((item) => item.id === player.id) || player;
+      const playerSide = getMatchSide(rosterKey, currentState.clubSide);
+      const isOwnGoal = goalActionType === 'own-goal';
+      const scoringSide = isOwnGoal ? (playerSide === 'local' ? 'visitor' : 'local') : playerSide;
+      const playerLabel = formatPlayerEventLabel(selectedPlayer, rosterKey);
+      const eventLabel = isOwnGoal
+        ? `${playerLabel} marca en propia puerta (${goalAction.label})`
+        : `${playerLabel} marca gol (${goalAction.label})`;
+      const goalEvent = {
+        ...buildEvent('goal', eventLabel, scoringSide, [selectedPlayer], currentState.elapsedSeconds),
+        goalActionType,
+      };
+
+      return {
+        ...currentState,
+        scores: {
+          ...currentState.scores,
+          [scoringSide]: currentState.scores[scoringSide] + 1,
+        },
+        events: [goalEvent, ...currentState.events].slice(0, 25),
+        ball: { x: 50, y: 50 },
+      };
+    });
+
+    setPendingGoalAction(null);
   };
 
   const handleInitiateInjury = () => {
@@ -2379,6 +2428,14 @@ function App() {
           onCancel={() => setPlayerActionMenu(null)}
           enabledPlayerActions={matchState.enabledPlayerActions}
           selectedAction={playerActionMenu.selectedAction || playerActionMenu.player?.selectedAction || null}
+        />
+      )}
+
+      {pendingGoalAction && (
+        <GoalActionModal
+          enabledActions={matchState.enabledPlayerActions}
+          onSelectAction={handleSelectGoalAction}
+          onCancel={() => setPendingGoalAction(null)}
         />
       )}
 

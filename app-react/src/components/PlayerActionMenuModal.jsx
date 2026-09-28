@@ -1,5 +1,5 @@
 import FootballBall from './FootballBall';
-import { PLAYER_ACTIONS } from '../data/actionCatalog';
+import { ACTION_GROUPS, PLAYER_ACTIONS } from '../data/actionCatalog';
 
 export const ACTION_ICONS = {
   goal: '⚽',
@@ -13,6 +13,16 @@ export const ACTION_ICONS = {
   penalty: '🔫',
   offside: '📍',
   corner: '🚩',
+  counterattack: '⚡',
+  'wide-cross': '↗️',
+  cutback: '↙️',
+  'combination-play': '🔗',
+  'ball-behind-defense': '➡️',
+  'individual-action': '🏃',
+  'long-shot': '🎯',
+  'second-ball': '🔄',
+  'direct-play': '⬆️',
+  'own-goal': '🥅',
   'shot-on-goal': '🎯',
   shot: '🔫',
   'clear-chance-created': '⚡',
@@ -29,7 +39,12 @@ export const ACTION_ICONS = {
 
 export default function PlayerActionMenuModal({ player, team, onSelectAction, onCancel, enabledPlayerActions = [], selectedAction = null }) {
   const enabledActionSet = new Set(enabledPlayerActions);
-  const actions = PLAYER_ACTIONS.filter((action) => enabledActionSet.has(action.type));
+  const goalActionTypes = new Set(
+    ACTION_GROUPS.find((group) => group.id === 'goal-actions')?.types.filter((type) => type !== 'goal') || [],
+  );
+  const actions = PLAYER_ACTIONS.filter((action) => (
+    enabledActionSet.has(action.type) && !goalActionTypes.has(action.type)
+  ));
 
   return (
     <div className="modal-overlay" onClick={onCancel}>
