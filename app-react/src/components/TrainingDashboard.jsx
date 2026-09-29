@@ -35,6 +35,7 @@ function formatAbsenceReason(reason) {
     lesion: 'Lesión',
     estudios: 'Estudios',
     medicos: 'Médicos',
+    personal: 'Personal',
     otros: 'Otros',
   }[reason] || 'Otros';
 }
@@ -60,6 +61,7 @@ const ABSENCE_REASON_OPTIONS = [
   { value: 'lesion', label: 'Lesión' },
   { value: 'estudios', label: 'Estudios' },
   { value: 'medicos', label: 'Médicos' },
+  { value: 'personal', label: 'Personal' },
   { value: 'otros', label: 'Otros' },
 ];
 
@@ -124,7 +126,7 @@ export default function TrainingDashboard({ roster, trainingSessions = [], teamA
       }
 
       const reason = training.absenceReasons?.[player.id] || 'otros';
-      const safeReason = ['lesion', 'estudios', 'medicos', 'otros'].includes(reason) ? reason : 'otros';
+      const safeReason = ['lesion', 'estudios', 'medicos', 'personal', 'otros'].includes(reason) ? reason : 'otros';
 
       return {
         ...totals,
@@ -134,6 +136,7 @@ export default function TrainingDashboard({ roster, trainingSessions = [], teamA
       lesion: 0,
       estudios: 0,
       medicos: 0,
+      personal: 0,
       otros: 0,
     });
 

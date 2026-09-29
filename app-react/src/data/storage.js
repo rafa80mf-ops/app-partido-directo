@@ -165,7 +165,7 @@ function normalizeTrainingSessions(rawValue) {
           .filter(([playerId]) => attendance[playerId] === 'absent')
           .map(([playerId, reason]) => {
             const safeReason = typeof reason === 'string' ? reason.trim().toLowerCase() : 'otros';
-            return [playerId, ['lesion', 'estudios', 'medicos', 'otros'].includes(safeReason) ? safeReason : 'otros'];
+            return [playerId, ['lesion', 'estudios', 'medicos', 'personal', 'otros'].includes(safeReason) ? safeReason : 'otros'];
           }))
         : {};
 
