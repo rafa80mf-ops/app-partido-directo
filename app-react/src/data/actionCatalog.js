@@ -40,6 +40,7 @@ export const ACTION_PRIORITY = [
   'long-shot',
   'second-ball',
   'direct-play',
+  'pressure-build-up',
   'own-goal',
   'fouls-received',
   'penalty',
@@ -91,6 +92,7 @@ const ACTION_LABELS = {
   'long-shot': 'Disparo lejano',
   'second-ball': 'Segunda jugada',
   'direct-play': 'Juego directo',
+  'pressure-build-up': 'Presión salida de balón',
   'own-goal': 'Propia puerta',
   'fouls-received': 'Faltas recibidas',
   penalty: 'Penaltis cometidos',
@@ -124,7 +126,7 @@ export const ACTION_GROUPS = [
   {
     id: 'goal-actions',
     title: 'Acciones de gol',
-    types: ['goal', 'foul', 'corner', 'counterattack', 'wide-cross', 'cutback', 'combination-play', 'ball-behind-defense', 'individual-action', 'long-shot', 'second-ball', 'direct-play', 'own-goal'],
+    types: ['goal', 'foul', 'corner', 'counterattack', 'wide-cross', 'cutback', 'combination-play', 'ball-behind-defense', 'individual-action', 'long-shot', 'second-ball', 'direct-play', 'pressure-build-up', 'own-goal'],
   },
   {
     id: 'special',

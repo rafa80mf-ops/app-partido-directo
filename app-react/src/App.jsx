@@ -373,7 +373,7 @@ function App() {
           events: [
             buildEvent('info', `Descuento primera parte: +${safeAddedMinutes} minuto(s)`, 'neutral', [], currentState.elapsedSeconds),
             ...currentState.events,
-          ].slice(0, 25),
+          ].slice(0, 500),
         }));
         window.alert(translateUiText(`Se jugara hasta el minuto ${45 + safeAddedMinutes} antes del descanso.`, matchState.appLanguage));
       }
@@ -392,7 +392,7 @@ function App() {
         events: [
           buildEvent('info', `Descanso (${45 + firstHalfAddedMinutes}:00) - Partido pausado automaticamente`, 'neutral', [], currentState.elapsedSeconds),
           ...currentState.events,
-        ].slice(0, 25),
+        ].slice(0, 500),
       }));
       return;
     }
@@ -425,7 +425,7 @@ function App() {
           ? [
               buildEvent('info', `Descuento segunda parte: +${safeAddedMinutes} minuto(s)`, 'neutral', [], currentState.elapsedSeconds),
               ...currentState.events,
-            ].slice(0, 25)
+            ].slice(0, 500)
           : currentState.events,
       }));
     }
@@ -675,7 +675,7 @@ function App() {
         events: [
           buildEvent('info', currentState.elapsedSeconds > 0 ? 'Partido reanudado' : 'Partido iniciado', 'neutral', [], currentState.elapsedSeconds),
           ...currentState.events,
-        ].slice(0, 25),
+        ].slice(0, 500),
       };
     });
   };
@@ -697,7 +697,7 @@ function App() {
         events: [
           buildEvent('info', 'Partido pausado', 'neutral', [], currentState.elapsedSeconds),
           ...currentState.events,
-        ].slice(0, 25),
+        ].slice(0, 500),
       };
     });
   };
@@ -709,7 +709,7 @@ function App() {
       events: [
         buildEvent('info', 'Primera parte finalizada (manual)', 'neutral', [], currentState.elapsedSeconds),
         ...currentState.events,
-      ].slice(0, 25),
+      ].slice(0, 500),
     }));
     setHalfTimeNoticeShown(true);
     setFirstHalfAddedConfigured(true);
@@ -727,7 +727,7 @@ function App() {
       events: [
         buildEvent('info', 'Segunda parte iniciada (45:00)', 'neutral', [], 45 * 60),
         ...currentState.events,
-      ].slice(0, 25),
+      ].slice(0, 500),
     }));
     setHalfTimeNoticeShown(true);
     setFirstHalfAddedConfigured(true);
@@ -738,10 +738,13 @@ function App() {
     updateMatchState((currentState) => ({
       ...currentState,
       elapsedSeconds: Math.max(0, currentState.elapsedSeconds + 5 * 60),
-      events: [
-        buildEvent('info', 'Reloj adelantado +5 min (prueba)', 'neutral', [], Math.max(0, currentState.elapsedSeconds + 5 * 60)),
-        ...currentState.events,
-      ].slice(0, 25),
+    }));
+  };
+
+  const handleAdvanceOneMinute = () => {
+    updateMatchState((currentState) => ({
+      ...currentState,
+      elapsedSeconds: Math.max(0, currentState.elapsedSeconds + 60),
     }));
   };
 
@@ -1107,7 +1110,7 @@ function App() {
         ? [
             buildEvent('tactics', `Formación ${formation} aplicada al ${side === 'local' ? 'equipo local' : 'visitante'}`, 'neutral', [], currentState.elapsedSeconds),
             ...currentState.events,
-          ].slice(0, 25)
+          ].slice(0, 500)
         : currentState.events,
     }));
   };
@@ -1129,7 +1132,7 @@ function App() {
       events: [
         buildEvent('goal', `${currentState.teams[team]} marca gol`, team, [], currentState.elapsedSeconds),
         ...currentState.events,
-      ].slice(0, 25),
+      ].slice(0, 500),
       ball: {
         x: 50,
         y: 50,
@@ -1148,7 +1151,7 @@ function App() {
       events: [
         buildEvent('assist', `${currentState.teams[team]} tiene asistencia`, team, [], currentState.elapsedSeconds),
         ...currentState.events,
-      ].slice(0, 25),
+      ].slice(0, 500),
     }));
   };
 
@@ -1163,7 +1166,7 @@ function App() {
       events: [
         buildEvent(color === 'yellow' ? 'yellow' : 'red', `${currentState.teams[team]} recibe tarjeta ${color}`, team, [], currentState.elapsedSeconds),
         ...currentState.events,
-      ].slice(0, 25),
+      ].slice(0, 500),
     }));
   };
 
@@ -1215,7 +1218,7 @@ function App() {
             currentState.elapsedSeconds,
           ),
           ...currentState.events,
-        ].slice(0, 25),
+        ].slice(0, 500),
       };
     });
   };
@@ -1239,7 +1242,7 @@ function App() {
       events: [
         buildEvent('foul', `${currentState.teams[team]} comete falta`, team, [], currentState.elapsedSeconds),
         ...currentState.events,
-      ].slice(0, 25),
+      ].slice(0, 500),
     }));
   };
 
@@ -1249,7 +1252,7 @@ function App() {
       events: [
         buildEvent('penalty', `${currentState.teams[team]} - Penalti`, team, [], currentState.elapsedSeconds),
         ...currentState.events,
-      ].slice(0, 25),
+      ].slice(0, 500),
     }));
   };
 
@@ -1259,7 +1262,7 @@ function App() {
       events: [
         buildEvent('offside', `${currentState.teams[team]} - Fuera de juego`, team, [], currentState.elapsedSeconds),
         ...currentState.events,
-      ].slice(0, 25),
+      ].slice(0, 500),
     }));
   };
 
@@ -1269,7 +1272,7 @@ function App() {
       events: [
         buildEvent('corner', `${currentState.teams[team]} - Saque de esquina`, team, [], currentState.elapsedSeconds),
         ...currentState.events,
-      ].slice(0, 25),
+      ].slice(0, 500),
     }));
   };
 
@@ -1279,7 +1282,7 @@ function App() {
       events: [
         buildEvent('edit-number', `${currentState.teams[team]} - Cambio de dorsal`, team, [], currentState.elapsedSeconds),
         ...currentState.events,
-      ].slice(0, 25),
+      ].slice(0, 500),
     }));
   };
 
@@ -1289,7 +1292,7 @@ function App() {
       events: [
         buildEvent('shot-on-goal', `${currentState.teams[team]} - Tiro a puerta`, team, [], currentState.elapsedSeconds),
         ...currentState.events,
-      ].slice(0, 25),
+      ].slice(0, 500),
     }));
   };
 
@@ -1299,7 +1302,7 @@ function App() {
       events: [
         buildEvent('shot', `${currentState.teams[team]} - Tiros`, team, [], currentState.elapsedSeconds),
         ...currentState.events,
-      ].slice(0, 25),
+      ].slice(0, 500),
     }));
   };
 
@@ -1309,7 +1312,7 @@ function App() {
       events: [
         buildEvent('clear-chance-created', `${currentState.teams[team]} - Ocasión clara creada`, team, [], currentState.elapsedSeconds),
         ...currentState.events,
-      ].slice(0, 25),
+      ].slice(0, 500),
     }));
   };
 
@@ -1319,7 +1322,7 @@ function App() {
       events: [
         buildEvent('clear-chance-missed', `${currentState.teams[team]} - Ocasión clara fallada`, team, [], currentState.elapsedSeconds),
         ...currentState.events,
-      ].slice(0, 25),
+      ].slice(0, 500),
     }));
   };
 
@@ -1329,7 +1332,7 @@ function App() {
       events: [
         buildEvent('ball-loss', `${currentState.teams[team]} - Pérdida de balón`, team, [], currentState.elapsedSeconds),
         ...currentState.events,
-      ].slice(0, 25),
+      ].slice(0, 500),
     }));
   };
 
@@ -1339,7 +1342,7 @@ function App() {
       events: [
         buildEvent('crosses', `${currentState.teams[team]} - Centros`, team, [], currentState.elapsedSeconds),
         ...currentState.events,
-      ].slice(0, 25),
+      ].slice(0, 500),
     }));
   };
 
@@ -1349,7 +1352,7 @@ function App() {
       events: [
         buildEvent('ball-recovery', `${currentState.teams[team]} - Balón recuperado`, team, [], currentState.elapsedSeconds),
         ...currentState.events,
-      ].slice(0, 25),
+      ].slice(0, 500),
     }));
   };
 
@@ -1359,7 +1362,7 @@ function App() {
       events: [
         buildEvent('clearance', `${currentState.teams[team]} - Despejes`, team, [], currentState.elapsedSeconds),
         ...currentState.events,
-      ].slice(0, 25),
+      ].slice(0, 500),
     }));
   };
 
@@ -1369,7 +1372,7 @@ function App() {
       events: [
         buildEvent('error-goal', `${currentState.teams[team]} - Error provoca gol`, team, [], currentState.elapsedSeconds),
         ...currentState.events,
-      ].slice(0, 25),
+      ].slice(0, 500),
     }));
   };
 
@@ -1379,7 +1382,7 @@ function App() {
       events: [
         buildEvent('error-chance', `${currentState.teams[team]} - Error provoca ocasión de gol`, team, [], currentState.elapsedSeconds),
         ...currentState.events,
-      ].slice(0, 25),
+      ].slice(0, 500),
     }));
   };
 
@@ -1389,7 +1392,7 @@ function App() {
       events: [
         buildEvent('saves', `${currentState.teams[team]} - Paradas`, team, [], currentState.elapsedSeconds),
         ...currentState.events,
-      ].slice(0, 25),
+      ].slice(0, 500),
     }));
   };
 
@@ -1399,7 +1402,7 @@ function App() {
       events: [
         buildEvent('one-on-one-won', `${currentState.teams[team]} - Uno contra uno ganado`, team, [], currentState.elapsedSeconds),
         ...currentState.events,
-      ].slice(0, 25),
+      ].slice(0, 500),
     }));
   };
 
@@ -1694,9 +1697,8 @@ function App() {
           ...currentState,
           roster: {
             ...currentState.roster,
-            [rosterKey]: (currentState.roster[rosterKey] || []).map((item) =>
-              item.id === player.id ? { ...item, number: nextNumber } : item,
-            ),
+            [rosterKey]: (currentState.roster[rosterKey] || []).map((item) => item.id === player.id ? { ...item, number: nextNumber } : item),
+            [benchKey]: (currentState.roster[benchKey] || []).map((item) => item.id === player.id ? { ...item, number: nextNumber } : item),
           },
         }));
       }
@@ -1725,7 +1727,7 @@ function App() {
             currentState.elapsedSeconds,
           ),
           ...currentState.events,
-        ].slice(0, 25),
+        ].slice(0, 500),
       };
 
       if (actionType === 'goal') {
@@ -1826,9 +1828,8 @@ function App() {
           ...currentState,
           roster: {
             ...currentState.roster,
-            [rosterKey]: (currentState.roster[rosterKey] || []).map((item) =>
-              item.id === player.id ? { ...item, number: nextNumber } : item,
-            ),
+            [rosterKey]: (currentState.roster[rosterKey] || []).map((item) => item.id === player.id ? { ...item, number: nextNumber } : item),
+            [benchKey]: (currentState.roster[benchKey] || []).map((item) => item.id === player.id ? { ...item, number: nextNumber } : item),
           },
         }));
       }
@@ -1852,7 +1853,7 @@ function App() {
           events: [
             buildEvent(isOwnGoal ? 'goal' : actionType, `${formatPlayerEventLabel(selectedPlayer, rosterKey)} ${actionLabel}`, scoringSide, [selectedPlayer], currentState.elapsedSeconds),
             ...currentState.events,
-          ].slice(0, 25),
+          ].slice(0, 500),
         };
 
         if (actionType === 'goal' || isOwnGoal) {
@@ -1882,7 +1883,7 @@ function App() {
             events: [
               buildEvent('red', `${formatPlayerEventLabel(selectedPlayer, rosterKey)} recibe tarjeta roja y es expulsada`, matchSide, [selectedPlayer], currentState.elapsedSeconds),
               ...currentState.events,
-            ].slice(0, 25),
+            ].slice(0, 500),
           };
         }
 
@@ -1899,7 +1900,7 @@ function App() {
           events: [
             buildEvent('red', `${formatPlayerEventLabel(selectedPlayer, rosterKey)} recibe tarjeta roja y es expulsada`, matchSide, [selectedPlayer], currentState.elapsedSeconds),
             ...currentState.events,
-          ].slice(0, 25),
+          ].slice(0, 500),
         };
       }
 
@@ -1910,7 +1911,7 @@ function App() {
           events: [
             buildEvent(actionType, `${formatPlayerEventLabel(selectedPlayer, rosterKey)}: ${genericAction.label}`, matchSide, [selectedPlayer], currentState.elapsedSeconds),
             ...currentState.events,
-          ].slice(0, 25),
+          ].slice(0, 500),
         };
       }
 
@@ -1925,7 +1926,7 @@ function App() {
         events: [
           buildEvent('injury', `${formatPlayerEventLabel(selectedPlayer, rosterKey)} se lesiona`, matchSide, [selectedPlayer], currentState.elapsedSeconds),
           ...currentState.events,
-        ].slice(0, 25),
+        ].slice(0, 500),
       };
     });
 
@@ -1964,7 +1965,7 @@ function App() {
           ...currentState.scores,
           [scoringSide]: currentState.scores[scoringSide] + 1,
         },
-        events: [goalEvent, ...currentState.events].slice(0, 25),
+        events: [goalEvent, ...currentState.events].slice(0, 500),
         ball: { x: 50, y: 50 },
       };
     });
@@ -2043,7 +2044,7 @@ function App() {
       return {
         ...currentState,
         roster: updatedRoster,
-        events: [buildEvent(eventType, eventLabel, matchSide, updatedPlayer ? [updatedPlayer] : [], currentState.elapsedSeconds), ...currentState.events].slice(0, 25),
+        events: [buildEvent(eventType, eventLabel, matchSide, updatedPlayer ? [updatedPlayer] : [], currentState.elapsedSeconds), ...currentState.events].slice(0, 500),
       };
     });
 
@@ -2079,7 +2080,7 @@ function App() {
             currentState.elapsedSeconds,
           ),
           ...currentState.events,
-        ].slice(0, 25),
+        ].slice(0, 500),
       };
     });
 
@@ -2106,7 +2107,7 @@ function App() {
             currentState.elapsedSeconds,
           ),
           ...currentState.events,
-        ].slice(0, 25),
+        ].slice(0, 500),
       };
 
       if (playerActionModal.type === 'goal') {
@@ -2192,6 +2193,7 @@ function App() {
                   onEndFirstHalf={handleEndFirstHalf}
                   onStartSecondHalf={handleStartSecondHalf}
                   onAdvanceFiveMinutes={handleAdvanceFiveMinutes}
+                  onAdvanceOneMinute={handleAdvanceOneMinute}
                   onReset={handleReset}
                   enabledPlayerActions={matchState.enabledPlayerActions}
                   onTogglePlayerAction={handleTogglePlayerAction}

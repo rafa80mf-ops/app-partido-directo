@@ -12,6 +12,7 @@ export default function ControlPanel({
   onEndFirstHalf,
   onStartSecondHalf,
   onAdvanceFiveMinutes,
+  onAdvanceOneMinute,
   onReset,
   enabledPlayerActions = [],
   onTogglePlayerAction = () => {},
@@ -78,6 +79,7 @@ export default function ControlPanel({
       'long-shot': '🎯',
       'second-ball': '🔄',
       'direct-play': '⬆️',
+      'pressure-build-up': '🔥',
       'own-goal': '🥅',
       'fouls-received': '🤝',
       penalty: '🔫',
@@ -189,8 +191,11 @@ export default function ControlPanel({
         <button type="button" className={`${buttonBaseClass} second-half-button`} onClick={onStartSecondHalf} disabled={!lineupConfirmed}>
           ▶️ Iniciar 2ª parte (45:00)
         </button>
+        <button type="button" className={`${buttonBaseClass} test-time-button`} onClick={onAdvanceOneMinute} disabled={!lineupConfirmed}>
+          ⏩ +1 min
+        </button>
         <button type="button" className={`${buttonBaseClass} test-time-button`} onClick={onAdvanceFiveMinutes} disabled={!lineupConfirmed}>
-          ⏩ +5 min (prueba)
+          ⏩ +5 min
         </button>
       </div>
 

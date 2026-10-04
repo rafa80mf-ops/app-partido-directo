@@ -6,6 +6,67 @@ function formatMinutes(seconds) {
   return Math.floor((Number(seconds) || 0) / 60);
 }
 
+function computePlayerMinutesSeconds(match) {
+  const totalSeconds = Math.max(0, Number(match.elapsedSeconds) || 0);
+  const clampSeconds = (value) => Math.min(Math.max(0, Number(value) || 0), totalSeconds);
+  const clubTeam = match.clubSide === 'visitor' ? 'visitor' : 'local';
+  const fieldPlayers = match.roster?.local || [];
+  const benchPlayers = match.roster?.bench || [];
+  const clubPlayers = [...fieldPlayers, ...benchPlayers];
+  const clubPlayerIds = new Set(clubPlayers.map((player) => player.id));
+
+  const secondsPlayed = new Map();
+  clubPlayers.forEach((player) => secondsPlayed.set(player.id, 0));
+
+  const clubEvents = (match.events || [])
+    .filter((event) => event.team === clubTeam && Number.isFinite(event?.elapsedSeconds))
+    .sort((first, second) => first.elapsedSeconds - second.elapsedSeconds);
+
+  // Resolver la alineación titular: partir de quien termina en el campo y deshacer cambios/expulsiones hacia atrás.
+  const starters = new Set(fieldPlayers.map((player) => player.id));
+  [...clubEvents].reverse().forEach((event) => {
+    const [firstPlayer, secondPlayer] = event.players || [];
+    if (event.type === 'substitution') {
+      if (firstPlayer && clubPlayerIds.has(firstPlayer.id)) {
+        starters.delete(secondPlayer?.id);
+        starters.add(firstPlayer.id);
+      }
+    }
+    if (event.type === 'red' && firstPlayer && clubPlayerIds.has(firstPlayer.id)) {
+      starters.add(firstPlayer.id);
+    }
+  });
+
+  // Recorrer eventos en orden cronológico sumando intervalos reales en el campo.
+  const onField = new Set(starters);
+  let previousSeconds = 0;
+
+  const accumulate = (upToSeconds) => {
+    const delta = Math.max(0, upToSeconds - previousSeconds);
+    onField.forEach((playerId) => {
+      secondsPlayed.set(playerId, (secondsPlayed.get(playerId) || 0) + delta);
+    });
+    previousSeconds = upToSeconds;
+  };
+
+  clubEvents.forEach((event) => {
+    const eventSeconds = clampSeconds(event.elapsedSeconds);
+    accumulate(eventSeconds);
+    const [firstPlayer, secondPlayer] = event.players || [];
+    if (event.type === 'substitution') {
+      if (firstPlayer && clubPlayerIds.has(firstPlayer.id)) onField.delete(firstPlayer.id);
+      if (secondPlayer && clubPlayerIds.has(secondPlayer.id)) onField.add(secondPlayer.id);
+    }
+    if (event.type === 'red' && firstPlayer && clubPlayerIds.has(firstPlayer.id)) {
+      onField.delete(firstPlayer.id);
+    }
+  });
+
+  accumulate(totalSeconds);
+
+  return secondsPlayed;
+}
+
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
 }
@@ -16,12 +77,12 @@ function buildPlayerStats(matches) {
   matches.forEach((match) => {
     const players = [...(match.roster?.local || []), ...(match.roster?.bench || [])];
     const clubTeam = match.clubSide === 'visitor' ? 'visitor' : 'local';
-    const fieldIds = new Set((match.roster?.local || []).map((player) => player.id));
+    const minutesById = computePlayerMinutesSeconds(match);
 
     players.forEach((player) => {
       const key = `${player.number}-${player.name}`;
       const current = stats.get(key) || { key, number: player.number, name: player.name, minutes: 0, goals: 0, assists: 0, yellowCards: 0, redCards: 0 };
-      if (fieldIds.has(player.id)) current.minutes += formatMinutes(match.elapsedSeconds);
+      current.minutes += formatMinutes(minutesById.get(player.id) || 0);
       stats.set(key, current);
     });
 
@@ -55,6 +116,24 @@ function getEventIcon(eventType) {
     substitution: '🔄',
     injury: '✚',
   }[eventType] || '•';
+}
+
+function getEventReportSymbol(eventType) {
+  return {
+    goal: '⚽',
+    assist: '🅰️',
+    yellow: '🟨',
+    red: '🟥',
+    substitution: '🔄',
+    injury: '✚',
+    info: 'ℹ️',
+    foul: '⚠️',
+    penalty: '🔫',
+    corner: '🚩',
+    offside: '📍',
+    tactics: '♟️',
+    reset: '⟲',
+  }[eventType] || '📌';
 }
 
 function normalizeMatchType(type) {
@@ -103,6 +182,10 @@ function buildMatchReportText(match) {
   lines.push(`${match.teams.local} ${match.scores.local} - ${match.scores.visitor} ${match.teams.visitor}`);
   lines.push(`Finalizado: ${match.finishedAt}`);
 
+  if (Number.isFinite(match?.elapsedSeconds)) {
+    lines.push(`Final del partido: minuto ${Math.floor(match.elapsedSeconds / 60)}`);
+  }
+
   const technicalStaff = Array.isArray(match.technicalStaff)
     ? match.technicalStaff.filter((member) => member?.name)
     : [];
@@ -123,7 +206,7 @@ function buildMatchReportText(match) {
   } else {
     sortedEvents.forEach((event) => {
       const minuteLabel = getEventMinuteLabel(event) || "--'";
-      lines.push(`- ${minuteLabel} ${formatReportEventLabel(event)}`);
+      lines.push(`- ${minuteLabel} ${getEventReportSymbol(event.type)} ${formatReportEventLabel(event)}`);
     });
   }
 
@@ -261,6 +344,39 @@ export default function HistoryDashboard({ matches, onEditMatch, onDeleteMatch, 
     setShareMessage('Acta guardada en tu ordenador.');
   };
 
+  const handleShareReportWhatsApp = (match) => {
+    const text = buildMatchReportText(match);
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+    setShareMessage('Acta lista para enviar por WhatsApp.');
+  };
+
+  const handleShareReportEmail = (match) => {
+    const text = buildMatchReportText(match);
+    const subject = `Acta ${match.teams.local} vs ${match.teams.visitor}`;
+    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
+    setShareMessage('Acta lista para enviar por email.');
+  };
+
+  const handlePrintReport = (match) => {
+    const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+    if (!printWindow) {
+      setShareMessage('No se pudo abrir la ventana de impresión.');
+      return;
+    }
+
+    const technicalStaff = normalizeTechnicalStaffForReport(match.technicalStaff);
+    const staffRows = technicalStaff.map((member) => `<li><strong>${escapeHtml(member.role)}:</strong> ${escapeHtml(member.name)}</li>`).join('');
+    const eventRows = sortEventsByMatchTime(match.events || [])
+      .map((event) => `<li><strong>${escapeHtml(getEventMinuteLabel(event) || "--'")}</strong> ${getEventReportSymbol(event.type)} ${escapeHtml(formatReportEventLabel(event))}</li>`)
+      .join('');
+
+    printWindow.document.write(`<!doctype html><html><head><title>Acta ${escapeHtml(match.teams.local)} vs ${escapeHtml(match.teams.visitor)}</title><style>body{font-family:Arial,sans-serif;color:#172033;padding:24px}h1{font-size:22px;margin:0 0 4px}h2{font-size:16px;margin:20px 0 8px}p{color:#475569;margin:0 0 12px}ul,ol{margin:0;padding-left:22px}li{padding:4px 0}</style></head><body><h1>Acta del partido</h1><p>${escapeHtml(match.teams.local)} ${match.scores.local} - ${match.scores.visitor} ${escapeHtml(match.teams.visitor)} · ${escapeHtml(match.finishedAt || '')}</p>${Number.isFinite(match?.elapsedSeconds) ? `<p>Final del partido: minuto ${Math.floor(match.elapsedSeconds / 60)}</p>` : ''}${staffRows ? `<h2>Cuerpo técnico</h2><ul>${staffRows}</ul>` : ''}<h2>Eventos</h2>${eventRows ? `<ol>${eventRows}</ol>` : '<p>Sin eventos registrados.</p>'}</body></html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    setShareMessage('Acta enviada a imprimir.');
+  };
+
   const buildPlayerStatsText = () => [
     'ESTADÍSTICAS DEL EQUIPO',
     `${matches.length} partidos finalizados`,
@@ -309,6 +425,16 @@ export default function HistoryDashboard({ matches, onEditMatch, onDeleteMatch, 
     printWindow.print();
   };
 
+  const handleSharePlayerStatsWhatsApp = () => {
+    window.open(`https://wa.me/?text=${encodeURIComponent(buildPlayerStatsText())}`, '_blank', 'noopener,noreferrer');
+    setShareMessage('Estadísticas listas para enviar por WhatsApp.');
+  };
+
+  const handleSharePlayerStatsEmail = () => {
+    window.location.href = `mailto:?subject=${encodeURIComponent('Estadísticas del equipo')}&body=${encodeURIComponent(buildPlayerStatsText())}`;
+    setShareMessage('Estadísticas listas para enviar por email.');
+  };
+
   return (
     <section className="history-dashboard" aria-label="Historial" style={{ '--club-color': teamAppearance?.color || '#facc15', '--club-contrast': teamAppearance?.secondaryColor || '#111827' }}>
       <header className="section-heading">
@@ -332,7 +458,7 @@ export default function HistoryDashboard({ matches, onEditMatch, onDeleteMatch, 
             ))}
           </aside>
           {selectedMatch ? <article className="match-report">
-            <div className="match-report-heading"><div><span className="report-competition-badge">{normalizeMatchType(selectedMatch.type) === 'Amistoso' ? <><img src="/club-crest.svg" alt="" /> Amistoso</> : <><img src="/fcf-logo.svg" alt="" /> Liga</>}</span><h2>{selectedMatch.teams.local} {selectedMatch.scores.local} - {selectedMatch.scores.visitor} {selectedMatch.teams.visitor}</h2><p>🗓️ {selectedMatch.finishedAt}</p></div><div className="match-report-actions"><button type="button" className="icon-report-button edit-report-button" onClick={() => onEditMatch(selectedMatch)} title="Modificar acta" aria-label="Modificar acta">✎</button><button type="button" className="icon-report-button share-report-button" onClick={() => handleShareReport(selectedMatch)} title="Enviar acta" aria-label="Enviar acta">↗</button><button type="button" className="icon-report-button download-report-button" onClick={() => handleDownloadReport(selectedMatch)} title="Guardar acta" aria-label="Guardar acta">⬇</button><button type="button" className="icon-report-button delete-report-button" onClick={() => { if (window.confirm(translateUiText('¿Borrar esta acta?', appLanguage))) onDeleteMatch(selectedMatch.id); }} title="Borrar acta" aria-label="Borrar acta">⌫</button></div></div>
+            <div className="match-report-heading"><div><span className="report-competition-badge">{normalizeMatchType(selectedMatch.type) === 'Amistoso' ? <><img src="/club-crest.svg" alt="" /> Amistoso</> : <><img src="/fcf-logo.svg" alt="" /> Liga</>}</span><h2>{selectedMatch.teams.local} {selectedMatch.scores.local} - {selectedMatch.scores.visitor} {selectedMatch.teams.visitor}</h2><p>🗓️ {selectedMatch.finishedAt}</p>{Number.isFinite(selectedMatch?.elapsedSeconds) && <p>🏁 Final del partido: minuto {Math.floor(selectedMatch.elapsedSeconds / 60)}</p>}</div><div className="match-report-actions"><button type="button" className="icon-report-button edit-report-button" onClick={() => onEditMatch(selectedMatch)} title="Modificar acta" aria-label="Modificar acta">✎</button><button type="button" className="icon-report-button whatsapp-report-button" onClick={() => handleShareReportWhatsApp(selectedMatch)} title="Enviar acta por WhatsApp" aria-label="Enviar acta por WhatsApp">💬</button><button type="button" className="icon-report-button email-report-button" onClick={() => handleShareReportEmail(selectedMatch)} title="Enviar acta por email" aria-label="Enviar acta por email">✉</button><button type="button" className="icon-report-button print-report-button" onClick={() => handlePrintReport(selectedMatch)} title="Imprimir acta" aria-label="Imprimir acta">🖨</button><button type="button" className="icon-report-button share-report-button" onClick={() => handleShareReport(selectedMatch)} title="Enviar acta" aria-label="Enviar acta">↗</button><button type="button" className="icon-report-button download-report-button" onClick={() => handleDownloadReport(selectedMatch)} title="Guardar acta" aria-label="Guardar acta">⬇</button><button type="button" className="icon-report-button delete-report-button" onClick={() => { if (window.confirm(translateUiText('¿Borrar esta acta?', appLanguage))) onDeleteMatch(selectedMatch.id); }} title="Borrar acta" aria-label="Borrar acta">⌫</button></div></div>
             {selectedTechnicalStaff.length > 0 && <>
               <h3 className="report-title">Cuerpo técnico</h3>
               <ul className="report-staff-list">
@@ -348,6 +474,8 @@ export default function HistoryDashboard({ matches, onEditMatch, onDeleteMatch, 
           <div className="match-report-heading">
             <div><h2>Estadísticas del equipo</h2><p>{matches.length} partidos finalizados</p></div>
             <div className="match-report-actions">
+              <button type="button" className="icon-report-button" onClick={handleSharePlayerStatsWhatsApp} title="Enviar estadísticas por WhatsApp" aria-label="Enviar estadísticas por WhatsApp">💬</button>
+              <button type="button" className="icon-report-button" onClick={handleSharePlayerStatsEmail} title="Enviar estadísticas por email" aria-label="Enviar estadísticas por email">✉</button>
               <button type="button" className="icon-report-button" onClick={handlePrintPlayerStats} title="Imprimir estadísticas" aria-label="Imprimir estadísticas">🖨</button>
               <button type="button" className="icon-report-button share-report-button" onClick={handleSharePlayerStats} title="Enviar estadísticas" aria-label="Enviar estadísticas">↗</button>
               <button type="button" className="icon-report-button download-report-button" onClick={handleDownloadPlayerStats} title="Guardar estadísticas" aria-label="Guardar estadísticas">⬇</button>

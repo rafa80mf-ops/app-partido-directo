@@ -22,6 +22,7 @@ export const ACTION_ICONS = {
   'long-shot': '🎯',
   'second-ball': '🔄',
   'direct-play': '⬆️',
+  'pressure-build-up': '🔥',
   'own-goal': '🥅',
   'shot-on-goal': '🎯',
   shot: '🔫',

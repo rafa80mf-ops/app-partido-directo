@@ -328,6 +328,16 @@ export default function TrainingDashboard({ roster, trainingSessions = [], teamA
     printWindow.print();
   };
 
+  const handleShareStatsWhatsApp = () => {
+    window.open(`https://wa.me/?text=${encodeURIComponent(buildTrainingStatsText())}`, '_blank', 'noopener,noreferrer');
+    setStatsMessage('Estadística lista para enviar por WhatsApp.');
+  };
+
+  const handleShareStatsEmail = () => {
+    window.location.href = `mailto:?subject=${encodeURIComponent('Estadística de asistencia')}&body=${encodeURIComponent(buildTrainingStatsText())}`;
+    setStatsMessage('Estadística lista para enviar por email.');
+  };
+
   const buildPlayerHistoryText = () => {
     if (!selectedHistoryPlayer) {
       return '';
@@ -382,6 +392,16 @@ export default function TrainingDashboard({ roster, trainingSessions = [], teamA
     printWindow.document.close();
     printWindow.focus();
     printWindow.print();
+  };
+
+  const handleSharePlayerHistoryWhatsApp = () => {
+    window.open(`https://wa.me/?text=${encodeURIComponent(buildPlayerHistoryText())}`, '_blank', 'noopener,noreferrer');
+    setStatsMessage('Historial listo para enviar por WhatsApp.');
+  };
+
+  const handleSharePlayerHistoryEmail = () => {
+    window.location.href = `mailto:?subject=${encodeURIComponent(`Historial de ${getPlayerName(selectedHistoryPlayer)}`)}&body=${encodeURIComponent(buildPlayerHistoryText())}`;
+    setStatsMessage('Historial listo para enviar por email.');
   };
 
   return (
@@ -510,6 +530,8 @@ export default function TrainingDashboard({ roster, trainingSessions = [], teamA
           <div className="training-stats-actions">
             <strong>{sessions.length} sesiones</strong>
             {sessions.length > 0 && <div>
+              <button type="button" onClick={handleShareStatsWhatsApp} title="Enviar estadística por WhatsApp" aria-label="Enviar estadística por WhatsApp">💬</button>
+              <button type="button" onClick={handleShareStatsEmail} title="Enviar estadística por email" aria-label="Enviar estadística por email">✉</button>
               <button type="button" onClick={handlePrintStats} title="Imprimir estadística" aria-label="Imprimir estadística">🖨</button>
               <button type="button" onClick={handleShareStats} title="Enviar estadística" aria-label="Enviar estadística">↗</button>
               <button type="button" onClick={handleDownloadStats} title="Guardar estadística" aria-label="Guardar estadística">⬇</button>
@@ -529,6 +551,8 @@ export default function TrainingDashboard({ roster, trainingSessions = [], teamA
                   <h3>Historial: {selectedHistoryPlayer.number}. {getPlayerName(selectedHistoryPlayer)}</h3>
                   <div className="training-stats-actions">
                     <div>
+                      <button type="button" onClick={handleSharePlayerHistoryWhatsApp} title="Enviar historial por WhatsApp" aria-label="Enviar historial por WhatsApp">💬</button>
+                      <button type="button" onClick={handleSharePlayerHistoryEmail} title="Enviar historial por email" aria-label="Enviar historial por email">✉</button>
                       <button type="button" onClick={handlePrintPlayerHistory} title="Imprimir historial" aria-label="Imprimir historial">🖨</button>
                       <button type="button" onClick={handleSharePlayerHistory} title="Enviar historial" aria-label="Enviar historial">↗</button>
                       <button type="button" onClick={handleDownloadPlayerHistory} title="Guardar historial" aria-label="Guardar historial">⬇</button>
