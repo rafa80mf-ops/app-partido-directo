@@ -27,16 +27,20 @@ function getEventMinuteLabel(event) {
   return null;
 }
 
+function isRivalEventPlayer(player) {
+  return String(player?.id ?? '').startsWith('visitor-');
+}
+
 export default function MatchEvents({ events, teamAppearance, isOpen }) {
   const getActionLabel = (event) => {
     if (!event.players?.length) return event.label;
 
     let actionLabel = event.label;
     event.players.forEach((player, index) => {
-      const playerLabel = event.team === 'visitor' ? `${player.number}` : player.name;
+      const playerLabel = isRivalEventPlayer(player) ? `${player.number}` : player.name;
       actionLabel = actionLabel.replace(index === 0 ? `${playerLabel} ` : ` ${playerLabel}`, '');
     });
-    if (event.team !== 'visitor') {
+    if (!event.players.some(isRivalEventPlayer)) {
       actionLabel = actionLabel.replace(/\(#\d+\)\s*/, '');
     }
     return actionLabel;
@@ -57,12 +61,15 @@ export default function MatchEvents({ events, teamAppearance, isOpen }) {
               <div>
                 {event.players?.length > 0 && (
                   <div className="event-player-list">
-                    {event.players.map((player) => (
-                      <span key={`${player.number}-${player.name}`} className={`event-player ${event.team === 'visitor' ? 'visitor' : 'local'}`} style={event.team === 'local' ? { '--team-color': teamAppearance?.color || '#facc15', '--team-color-secondary': teamAppearance?.secondaryColor || '#111827' } : undefined}>
-                        <span className={`event-player-number ${event.team === 'local' && teamAppearance?.shape === 'shirt' ? 'appearance-shirt' : ''}`}>{player.number}</span>
-                        {event.team !== 'visitor' && <span className="event-player-name">{player.name}</span>}
-                      </span>
-                    ))}
+                    {event.players.map((player) => {
+                      const isRival = isRivalEventPlayer(player);
+                      return (
+                        <span key={`${player.number}-${player.name}`} className={`event-player ${isRival ? 'visitor' : 'local'}`} style={!isRival ? { '--team-color': teamAppearance?.color || '#facc15', '--team-color-secondary': teamAppearance?.secondaryColor || '#111827' } : undefined}>
+                          <span className={`event-player-number ${!isRival && teamAppearance?.shape === 'shirt' ? 'appearance-shirt' : ''}`}>{player.number}</span>
+                          {!isRival && <span className="event-player-name">{player.name}</span>}
+                        </span>
+                      );
+                    })}
                   </div>
                 )}
                 <strong>{getActionLabel(event)}</strong>
