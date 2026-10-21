@@ -6,5 +6,8 @@
     "dev": "npm --prefix app-react run dev -- --host 0.0.0.0",
     "build": "npm --prefix app-react run build",
     "preview": "npm --prefix app-react run preview -- --host 0.0.0.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.109.0"
   }
 }
